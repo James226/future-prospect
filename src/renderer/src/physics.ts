@@ -1,6 +1,6 @@
 import { vec3, vec4 } from 'gl-matrix'
 import Physics from './physics.wgsl?raw'
-import Density from './density.wgsl?raw'
+import Density from './density'
 
 import Random from 'seedrandom'
 
@@ -13,7 +13,7 @@ export default class Voxel {
   private readonly actorsBuffer: GPUBuffer
   private readonly computeBindGroup: GPUBindGroup
   private readonly actorsReadBuffer: GPUBuffer
-  private readonly densityBindGroup: GPUBindGroup
+  private readonly density: Density
 
   private constructor(
     velocity: vec3,
@@ -22,7 +22,7 @@ export default class Voxel {
     actorsBuffer: GPUBuffer,
     computeBindGroup: GPUBindGroup,
     actorsReadBuffer: GPUBuffer,
-    densityBindGroup: GPUBindGroup
+    density: Density
   ) {
     this.velocity = velocity
     this.position = position
@@ -30,13 +30,12 @@ export default class Voxel {
     this.actorsBuffer = actorsBuffer
     this.computeBindGroup = computeBindGroup
     this.actorsReadBuffer = actorsReadBuffer
-    this.densityBindGroup = densityBindGroup
+    this.density = density
   }
-  static async init(device: GPUDevice): Promise<Voxel> {
-    const physics = Physics.replace('#import density', Density)
+  static async init(device: GPUDevice, position: vec4): Promise<Voxel> {
+    const physics = Density.patch(Physics)
 
     const velocity = vec3.fromValues(0, 0, 0)
-    const position = vec4.fromValues(2005000, 0, 0, 0)
     const start = performance.now()
     console.log('Loading physics engine')
     const computePipeline = await device.createComputePipelineAsync({
@@ -92,23 +91,7 @@ export default class Voxel {
       usage: GPUBufferUsage.COPY_DST | GPUBufferUsage.MAP_READ
     })
 
-    const augmentationSize = 4 * 4 + 4 * 4
-    const augmentationBuffer = device.createBuffer({
-      size: augmentationSize,
-      usage: GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_DST
-    })
-
-    const densityBindGroup = device.createBindGroup({
-      layout: computePipeline.getBindGroupLayout(1),
-      entries: [
-        {
-          binding: 0,
-          resource: {
-            buffer: augmentationBuffer
-          }
-        }
-      ]
-    })
+    const density = await Density.init(device, computePipeline)
 
     console.log('Physics engine loaded', performance.now() - start)
 
@@ -119,7 +102,7 @@ export default class Voxel {
       actorsBuffer,
       computeBindGroup,
       actorsReadBuffer,
-      densityBindGroup
+      density
     )
   }
 
@@ -136,7 +119,7 @@ export default class Voxel {
       const computePassEncoder = computeEncoder.beginComputePass()
       computePassEncoder.setPipeline(this.computePipeline)
       computePassEncoder.setBindGroup(0, this.computeBindGroup)
-      computePassEncoder.setBindGroup(1, this.densityBindGroup)
+      this.density.apply(computePassEncoder)
       computePassEncoder.dispatchWorkgroups(1)
       computePassEncoder.end()
 

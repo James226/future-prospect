@@ -1,6 +1,6 @@
 import { vec3 } from 'gl-matrix'
 import Ray from './ray.wgsl?raw'
-import Density from './density.wgsl?raw'
+import Density from './density'
 
 class Intersection {
   position: vec3
@@ -20,19 +20,22 @@ export default class Raycast {
   private readonly intersectionsBuffer: GPUBuffer
   private readonly computeBindGroup: GPUBindGroup
   private readonly intersectionsReadBuffer: GPUBuffer
+  private readonly density: Density
 
   private constructor(
     computePipeline: GPUComputePipeline,
     uniformBuffer: GPUBuffer,
     intersectionsBuffer: GPUBuffer,
     computeBindGroup: GPUBindGroup,
-    intersectionsReadBuffer: GPUBuffer
+    intersectionsReadBuffer: GPUBuffer,
+    density: Density
   ) {
     this.computePipeline = computePipeline
     this.uniformBuffer = uniformBuffer
     this.intersectionsBuffer = intersectionsBuffer
     this.computeBindGroup = computeBindGroup
     this.intersectionsReadBuffer = intersectionsReadBuffer
+    this.density = density
   }
 
   static async init(device: GPUDevice): Promise<Raycast> {
@@ -40,11 +43,13 @@ export default class Raycast {
       layout: 'auto',
       compute: {
         module: device.createShaderModule({
-          code: Ray.replace('#import density', Density)
+          code: Density.patch(Ray)
         }),
         entryPoint: 'main'
       }
     })
+
+    const density = await Density.init(device, computePipeline)
 
     const uniformBufferSize = Float32Array.BYTES_PER_ELEMENT * 8
     const uniformBuffer = device.createBuffer({
@@ -89,11 +94,12 @@ export default class Raycast {
       uniformBuffer,
       intersectionsBuffer,
       computeBindGroup,
-      intersectionsReadBuffer
+      intersectionsReadBuffer,
+      density
     )
   }
 
-  cast(device, queue, position: vec3, direction: vec3): Promise<Intersection | null> {
+  cast(device: GPUDevice, queue, position: vec3, direction: vec3): Promise<Intersection | null> {
     return new Promise((resolve) => {
       device.queue.writeBuffer(this.uniformBuffer, 0, (<Float32Array>position).buffer)
       device.queue.writeBuffer(
@@ -106,6 +112,7 @@ export default class Raycast {
       const computePassEncoder = computeEncoder.beginComputePass()
       computePassEncoder.setPipeline(this.computePipeline)
       computePassEncoder.setBindGroup(0, this.computeBindGroup)
+      this.density.apply(computePassEncoder)
       computePassEncoder.dispatchWorkgroups(1)
       computePassEncoder.end()
 

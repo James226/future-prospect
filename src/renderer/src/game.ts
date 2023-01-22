@@ -3,7 +3,7 @@ import Controller from './controller'
 import Keyboard from './keyboard'
 import VoxelCollection from './voxel-collection'
 import Physics from './physics'
-import { mat4, vec3 } from 'gl-matrix'
+import {mat4, vec3, vec4} from 'gl-matrix'
 import Mouse from './mouse'
 import { QueueItem } from './queueItem'
 import Raycast from './raycast'
@@ -55,8 +55,17 @@ class Game {
   }
 
   static async init(device: GPUDevice): Promise<Game> {
+    const keyboard = new Keyboard()
+    keyboard.init()
+
+    const mouse = new Mouse()
+    mouse.init()
+
+    const controller = new Controller(keyboard, mouse)
+    controller.init()
+
     const players = new Map<string, Player>()
-    const network = await Network.init(players, (id) => {
+    const network = await Network.init(controller, players, (id) => {
       const player = new Player(device, vec3.fromValues(2000000.0, 100.0, 100.0))
       players[id] = player
       return player
@@ -67,16 +76,10 @@ class Game {
     //this.player = new Player(vec3.fromValues(2000000.0, 100.0, 100.0));
     //this.player.init(device);
 
-    const keyboard = new Keyboard()
-    keyboard.init()
-
-    const mouse = new Mouse()
-    mouse.init()
-
-    const physics = await Physics.init(device)
-
-    const controller = new Controller(keyboard, mouse)
-    controller.init()
+    const physics = await Physics.init(
+      device,
+      vec4.fromValues(controller.position[0], controller.position[1], controller.position[2], 0)
+    )
 
     const collection = await VoxelCollection.init(device)
 

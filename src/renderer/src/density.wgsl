@@ -211,14 +211,14 @@ fn calculateDensity(worldPosition: vec3<f32>) -> Density {
 
 	//result = add(result, blob, MATERIAL_ROCK);
 
-  result = add(result, Box(worldPosition, vec3<f32>(2000000.0, 150.0, 5000.0), vec3<f32>(5000.0, 1000.0, 5000.0)), MATERIAL_WOOD);
+  result = add(result, Box(worldPosition, vec3<f32>(2000000.0, 150.0, 5000.0), vec3<f32>(5000.0, 1000.0, 5000.0)), MATERIAL_ROCK);
   result = add(result, Sphere(worldPosition, vec3<f32>(2000000.0, 100.0, 100.0), 5000.0), MATERIAL_ROCK);
 
   //result = add(result, Sphere(worldPosition, vec3<f32>(2000000.0 - 1000000.0, 0.0, 0.0), 1000000.0), MATERIAL_ROCK);
 
   result = add(result, Sphere(worldPosition, vec3<f32>(0.0, 0.0, 0.0), 200000.0), MATERIAL_FIRE);
 
-  result = subtract(result, -Sphere(worldPosition, vec3<f32>(2000000.0, 0.0, 0.0), 1000.0));
+  //result = subtract(result, -Sphere(worldPosition, vec3<f32>(2000000.0, 0.0, 0.0), 1000.0));
   //result = subtract(result, -Box(worldPosition, vec3<f32>(2000000.0, 0.0, 0.0), vec3<f32>(6000.0, 500.0, 500.0)));
   //result = subtract(result, -Box(worldPosition, vec3<f32>(2000000.0, 0.0, 0.0), vec3<f32>(500.0, 500.0, 5000.0)));
 
@@ -232,7 +232,7 @@ fn calculateDensity(worldPosition: vec3<f32>) -> Density {
     if (i > count) { break; }
 
     let augmentation = augmentations[i];
-    result = add(result, Sphere(worldPosition, vec3<f32>(augmentation.position.x, augmentation.position.y, augmentation.position.z), 1000.0), MATERIAL_FIRE);
+    result = add(result, Box(worldPosition, vec3<f32>(augmentation.position.x, augmentation.position.y, augmentation.position.z), vec3<f32>(5000.0, 1.0, 5000.0)), MATERIAL_WOOD);
 
 
     continuing {

@@ -1,9 +1,15 @@
 import ReconnectingWebSocket from 'reconnecting-websocket'
 import Player from './player'
 import { vec3 } from 'gl-matrix'
+import jwt_decode from 'jwt-decode'
+import Controller from './controller'
 
 const apiUrl = 'wss://api.new-world.james-parker.dev'
-//let apiUrl = 'ws://localhost:3000';
+//const apiUrl = 'ws://localhost:3000'
+
+interface State {
+  position: { x: number; y: number; z: number }
+}
 
 export default class Network {
   private clientId: string
@@ -23,15 +29,27 @@ export default class Network {
     this.createPlayer = createPlayer
   }
 
-  static init(players: Map<string, Player>, createPlayer: (string) => Player): Promise<Network> {
+  static init(
+    controller: Controller,
+    players: Map<string, Player>,
+    createPlayer: (string) => Player
+  ): Promise<Network> {
     const socket = new ReconnectingWebSocket(`${apiUrl}/client`)
-
 
     return new Promise((resolve) => {
       socket.onmessage = (e: MessageEvent): void => {
         const message = JSON.parse(e.data)
         if (message.type === 'connected') {
-          console.log(message)
+          if (message.state) {
+            const decoded = jwt_decode(message.state) as State
+            vec3.set(
+              controller.position,
+              decoded.position.x,
+              decoded.position.y,
+              decoded.position.z
+            )
+          }
+
           const network = new Network(message.clientId, socket, players, createPlayer)
           socket.onmessage = network.processMessage.bind(network)
           resolve(network)
@@ -46,7 +64,11 @@ export default class Network {
 
   private async processMessage(e: MessageEvent): Promise<void> {
     const message = JSON.parse(e.data)
-    console.log(message)
+
+    if (message.state) {
+      const decoded = jwt_decode(message.state)
+      console.log(decoded)
+    }
 
     switch (message.type) {
       case 'client_connected':

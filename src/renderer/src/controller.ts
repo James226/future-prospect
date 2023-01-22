@@ -117,8 +117,18 @@ export default class Controller {
     mat4.identity(this.viewMatrix)
     const rotMat = mat4.fromQuat(mat4.create(), this.rotation)
     mat4.translate(this.viewMatrix, this.viewMatrix, this.position)
+
+    const gravity = vec3.fromValues(2000000.0, 0.0, 0.0)
+    const gravityDirection = vec3.sub(vec3.create(), this.position, gravity)
+    vec3.normalize(gravityDirection, gravityDirection)
+
+    mat4.translate(
+      this.viewMatrix,
+      this.viewMatrix,
+      vec3.scale(gravityDirection, gravityDirection, 100)
+    )
+
     mat4.mul(this.viewMatrix, this.viewMatrix, rotMat)
-    mat4.translate(this.viewMatrix, this.viewMatrix, vec3.fromValues(0, 100, 0))
     mat4.invert(this.viewMatrix, this.viewMatrix)
 
     const inverted = mat4.invert(mat4.create(), this.viewMatrix)
