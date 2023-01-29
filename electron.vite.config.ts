@@ -9,7 +9,6 @@ export default defineConfig({
   },
   renderer: {
     server: {
-      hmr: false
     }
   }
 })

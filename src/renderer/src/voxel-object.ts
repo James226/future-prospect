@@ -8,12 +8,10 @@ export default class VoxelObject {
   private indexCount: number
   private indexBuffer: GPUBuffer
   private uniformBuffer: GPUBuffer
-  private augmentationBuffer: GPUBuffer
   private uniformBindGroup: GPUBindGroup
-  private densityBindGroup: GPUBindGroup
   private pipeline: GPURenderPipeline
 
-  constructor(position: vec3, stride: number, device: GPUDevice, pipeline) {
+  constructor(position: vec3, stride: number, device: GPUDevice, pipeline: GPURenderPipeline) {
     this.position = position
     this.stride = stride
 
@@ -65,30 +63,6 @@ export default class VoxelObject {
           binding: 1,
           resource: {
             buffer: this.cornersBuffer
-          }
-        }
-      ]
-    })
-
-    const augmentationSize = 4 * 4 + 4 * 4
-    this.augmentationBuffer = device.createBuffer({
-      size: augmentationSize,
-      usage: GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_DST,
-      mappedAtCreation: true
-    })
-
-    const augmentations = new Float32Array(this.augmentationBuffer.getMappedRange())
-    augmentations[0] = 2200000.0
-
-    this.augmentationBuffer.unmap()
-
-    this.densityBindGroup = device.createBindGroup({
-      layout: pipeline.getBindGroupLayout(1),
-      entries: [
-        {
-          binding: 0,
-          resource: {
-            buffer: this.augmentationBuffer
           }
         }
       ]
@@ -221,7 +195,6 @@ export default class VoxelObject {
 
   draw(passEncoder: GPURenderPassEncoder): void {
     passEncoder.setBindGroup(0, this.uniformBindGroup)
-    passEncoder.setBindGroup(1, this.densityBindGroup)
     passEncoder.setVertexBuffer(0, this.vertexBuffer)
     passEncoder.setIndexBuffer(this.indexBuffer, 'uint16')
     passEncoder.drawIndexed(this.indexCount)

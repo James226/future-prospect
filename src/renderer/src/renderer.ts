@@ -1,4 +1,5 @@
 export default class Renderer {
+  public running: boolean
   private context: GPUCanvasContext
   device: GPUDevice
   private readonly presentationFormat: GPUTextureFormat
@@ -8,6 +9,7 @@ export default class Renderer {
     this.device = device
     this.context = context
     this.presentationFormat = presentationFormat
+    this.running = true
   }
 
   static async init(canvas: HTMLCanvasElement): Promise<Renderer> {

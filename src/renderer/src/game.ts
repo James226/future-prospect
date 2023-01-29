@@ -82,8 +82,8 @@ class Game {
 
     const density = await Density.init(device)
     density.update(device, [
-      { x: 1995000, y: 0, z: 0 },
-      { x: 2005000, y: 0, z: 0 }
+      { x: 2007000, y: 0, z: 1000 },
+      { x: 2007000, y: 0, z: 0 }
     ])
 
     const physics = await Physics.init(
@@ -92,15 +92,16 @@ class Game {
       density
     )
 
-    const collection = await VoxelCollection.init(device)
+    const collection = await VoxelCollection.init(device, density)
 
     const raycast = await Raycast.init(device, density)
 
-    // if (module.hot) {
-    //   module.hot.accept(['./voxel-collection.ts'], async () => {
-    //     this.collection = await VoxelCollection.init(device, this.collection.objects)
-    //   })
-    // }
+    if (import.meta.hot) {
+      import.meta.hot.accept('./voxel-collection.ts', async (module) => {
+        console.log('new module', module)
+        //this.collection = await VoxelCollection.init(device, this.collection.objects)
+      })
+    }
 
     const voxelWorker = new ContouringWorker()
     const game = new Game(

@@ -1,3 +1,5 @@
+/// <reference types="vite/types/importMeta" />
+
 import Stats from 'stats.js'
 import Renderer from './renderer'
 import Game from './game'
@@ -14,11 +16,9 @@ const steamworks: typeof import('steamworks.js') = eval(
 if (steamworks) {
   const client = steamworks.init(480)
 
-  // Print Steam username
   console.log(client.localplayer.getName())
   client.localplayer.getSteamId()
 
-  // Tries to activate an achievement
   if (!client.achievement.activate('ACH_WIN_ONE_GAME')) {
     console.log('Sad fish')
   }
@@ -46,45 +46,51 @@ if (steamworks) {
   // })
 }
 
-Renderer.init(canvas).then(async (renderer) => {
-  const configureRenderer: () => void = () => {
-    canvas.width = window.innerWidth
-    canvas.height = window.innerHeight
+const renderer = await Renderer.init(canvas)
+const configureRenderer: () => void = () => {
+  canvas.width = window.innerWidth
+  canvas.height = window.innerHeight
 
-    const aspect = Math.abs(canvas.width / canvas.height)
-    mat4.perspective(projectionMatrix, (2 * Math.PI) / 5, aspect, 1, 100000000)
+  const aspect = Math.abs(canvas.width / canvas.height)
+  mat4.perspective(projectionMatrix, (2 * Math.PI) / 5, aspect, 1, 100000000)
 
-    renderer.configure(canvas.width, canvas.height)
-  }
+  renderer.configure(canvas.width, canvas.height)
+}
 
-  window.addEventListener('resize', configureRenderer, false)
-  window.addEventListener('click', () => {
-    canvas.requestPointerLock()
-  })
-
-  const game = await Game.init(renderer.device)
-
-  configureRenderer()
-
-  let lastUpdate = performance.now()
-
-  const stats = new Stats()
-  stats.showPanel(0)
-  document.body.appendChild(stats.dom)
-
-  const doFrame: (number) => void = (timestamp: number) => {
-    stats.begin()
-    game.update(renderer.device, projectionMatrix, timestamp).then(() => {
-      renderer.render((e) => game.draw(e))
-      const now = performance.now()
-
-      if (now - lastUpdate > 1000) {
-        lastUpdate = now
-      }
-
-      stats.end()
-      requestAnimationFrame(doFrame)
-    })
-  }
-  requestAnimationFrame(doFrame)
+window.addEventListener('resize', configureRenderer, false)
+window.addEventListener('click', () => {
+  canvas.requestPointerLock()
 })
+
+let game = await Game.init(renderer.device)
+
+configureRenderer()
+
+let lastUpdate = performance.now()
+
+const stats = new Stats()
+stats.showPanel(0)
+document.body.appendChild(stats.dom)
+
+if (import.meta.hot) {
+  import.meta.hot.accept(['./game.ts'], async () => {
+    game = await Game.init(renderer.device)
+  })
+}
+
+const doFrame: (number) => Promise<void> = async (timestamp: number) => {
+  if (!renderer.running) return
+
+  stats.begin()
+  await game.update(renderer.device, projectionMatrix, timestamp)
+  renderer.render((e) => game.draw(e))
+  const now = performance.now()
+
+  if (now - lastUpdate > 1000) {
+    lastUpdate = now
+  }
+
+  stats.end()
+  requestAnimationFrame(doFrame)
+}
+requestAnimationFrame(doFrame)

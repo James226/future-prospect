@@ -225,14 +225,14 @@ fn calculateDensity(worldPosition: vec3<f32>) -> Density {
   //result = add(result, Sphere(worldPosition, vec3<f32>(2000000.0, 0.0, 0.0), 1000.0), MATERIAL_FIRE);
 
 
-  let count = arrayLength(&augmentations);
+  let count = 3u;
 
   var i: u32 = 0u;
   loop {
     if (i > count) { break; }
 
     let augmentation = augmentations[i];
-    result = add(result, Box(worldPosition, vec3<f32>(augmentation.position.x, augmentation.position.y, augmentation.position.z), vec3<f32>(5000.0, 50.0, 5000.0)), MATERIAL_WOOD);
+    result = add(result, Sphere(worldPosition, vec3<f32>(augmentation.position.x, augmentation.position.y, augmentation.position.z), 500.0), MATERIAL_WOOD);
 
 
     continuing {
@@ -240,7 +240,6 @@ fn calculateDensity(worldPosition: vec3<f32>) -> Density {
     }
   }
 
-  let augmentation = augmentations[0];
   return result;
 }
 

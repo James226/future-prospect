@@ -13,7 +13,7 @@ export class DensityInstance {
     this.bindGroup = bindGroup
   }
 
-  apply(encoder: GPUComputePassEncoder): void {
+  apply(encoder: GPUBindingCommandsMixin): void {
     encoder.setBindGroup(1, this.bindGroup)
   }
 }
@@ -28,18 +28,17 @@ export default class Density {
   }
 
   static async init(device: GPUDevice): Promise<Density> {
-    const augmentationSize = 5 * Float32Array.BYTES_PER_ELEMENT * 2
+    const augmentationSize = 8 * Float32Array.BYTES_PER_ELEMENT * 2
     const augmentationBuffer = device.createBuffer({
       size: augmentationSize,
       usage: GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_DST,
       mappedAtCreation: false
     })
 
-    const density = new Density(augmentationBuffer)
-    return density
+    return new Density(augmentationBuffer)
   }
 
-  async apply(device: GPUDevice, pipeline: GPUComputePipeline): Promise<DensityInstance> {
+  async apply(device: GPUDevice, pipeline: GPUPipelineBase): Promise<DensityInstance> {
     const densityBindGroup = device.createBindGroup({
       layout: pipeline.getBindGroupLayout(1),
       entries: [
@@ -56,11 +55,11 @@ export default class Density {
   }
 
   update(device: GPUDevice, densityArray: DensityModel[]): void {
-    this.augmentations = new Float32Array(densityArray.length * 5)
+    this.augmentations = new Float32Array(densityArray.length * 8)
     for (let i = 0; i < densityArray.length; i++) {
-      this.augmentations[i * 5] = densityArray[i].x
-      this.augmentations[i * 5 + 1] = densityArray[i].y
-      this.augmentations[i * 5 + 2] = densityArray[i].z
+      this.augmentations[i * 8] = densityArray[i].x
+      this.augmentations[i * 8 + 1] = densityArray[i].y
+      this.augmentations[i * 8 + 2] = densityArray[i].z
     }
 
     device.queue.writeBuffer(

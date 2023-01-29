@@ -2,7 +2,7 @@ import VertexShader from './vertex.wgsl?raw'
 import FragmentShader from './fragment.wgsl?raw'
 import { vec3 } from 'gl-matrix'
 import VoxelObject from './voxel-object'
-import Density from './density.wgsl?raw'
+import Density, { DensityInstance } from './density'
 
 const swapChainFormat = 'bgra8unorm'
 
@@ -10,17 +10,16 @@ export default class VoxelCollection {
   public readonly objects: Map<object, VoxelObject>
   private readonly pool: VoxelObject[]
   private readonly pipeline: GPURenderPipeline
+  private density: DensityInstance
 
-  private constructor(objects: Map<object, VoxelObject>, pipeline) {
+  private constructor(pipeline, densityInstance: DensityInstance) {
     this.pipeline = pipeline
-    this.objects = objects
+    this.objects = new Map<object, VoxelObject>()
+    this.density = densityInstance
     this.pool = []
   }
 
-  static async init(
-    device,
-    objects: Map<object, VoxelObject> = new Map<object, VoxelObject>()
-  ): Promise<VoxelCollection> {
+  static async init(device: GPUDevice, density: Density): Promise<VoxelCollection> {
     const uniformLayout = device.createBindGroupLayout({
       entries: [
         {
@@ -87,7 +86,7 @@ export default class VoxelCollection {
       },
       fragment: {
         module: device.createShaderModule({
-          code: FragmentShader.replace('#import density', Density)
+          code: Density.patch(FragmentShader)
         }),
         entryPoint: 'main',
         targets: [
@@ -108,13 +107,15 @@ export default class VoxelCollection {
       }
     })
 
+    const densityInstance = await density.apply(device, pipeline)
+
     // if (module.hot) {
     //   module.hot.accept(['./fragment.wgsl'], (a) => {
     //     buildPipeline()
     //   })
     // }
 
-    return new VoxelCollection(objects, pipeline)
+    return new VoxelCollection(pipeline, densityInstance)
   }
 
   set(device, key, position, stride, vertices, normals, indices, corners): void {
@@ -164,6 +165,7 @@ export default class VoxelCollection {
 
   draw(passEncoder: GPURenderPassEncoder): void {
     passEncoder.setPipeline(this.pipeline)
+    this.density.apply(passEncoder)
     for (const value of this.objects.values()) {
       value.draw(passEncoder)
     }
