@@ -1,6 +1,6 @@
 import { vec3 } from 'gl-matrix'
 import Ray from './ray.wgsl?raw'
-import Density from './density'
+import Density, { DensityInstance } from './density'
 
 class Intersection {
   position: vec3
@@ -20,7 +20,7 @@ export default class Raycast {
   private readonly intersectionsBuffer: GPUBuffer
   private readonly computeBindGroup: GPUBindGroup
   private readonly intersectionsReadBuffer: GPUBuffer
-  private readonly density: Density
+  private readonly density: DensityInstance
 
   private constructor(
     computePipeline: GPUComputePipeline,
@@ -28,7 +28,7 @@ export default class Raycast {
     intersectionsBuffer: GPUBuffer,
     computeBindGroup: GPUBindGroup,
     intersectionsReadBuffer: GPUBuffer,
-    density: Density
+    density: DensityInstance
   ) {
     this.computePipeline = computePipeline
     this.uniformBuffer = uniformBuffer
@@ -38,7 +38,7 @@ export default class Raycast {
     this.density = density
   }
 
-  static async init(device: GPUDevice): Promise<Raycast> {
+  static async init(device: GPUDevice, density: Density): Promise<Raycast> {
     const computePipeline = await device.createComputePipelineAsync({
       layout: 'auto',
       compute: {
@@ -49,7 +49,7 @@ export default class Raycast {
       }
     })
 
-    const density = await Density.init(device, computePipeline)
+    const densityInstance = await density.apply(device, computePipeline)
 
     const uniformBufferSize = Float32Array.BYTES_PER_ELEMENT * 8
     const uniformBuffer = device.createBuffer({
@@ -95,7 +95,7 @@ export default class Raycast {
       intersectionsBuffer,
       computeBindGroup,
       intersectionsReadBuffer,
-      density
+      densityInstance
     )
   }
 

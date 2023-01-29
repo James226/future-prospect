@@ -32,18 +32,18 @@ if (steamworks) {
   //     console.log(item);
   //   });
 
-  client.auth.getSessionTicket().then((ticket) => {
-    const buffer = ticket.getBytes()
-    console.log('ticket', buffer.toString('hex'))
-  })
+  // client.auth.getSessionTicket().then((ticket) => {
+  //   const buffer = ticket.getBytes()
+  //   console.log('ticket', buffer.toString('hex'))
+  // })
 
-  client.matchmaking.getLobbies().then(async (lobbies) => {
-    console.log('Lobbies', lobbies)
-    const lobby = await lobbies[0].join()
-    console.log(lobby.getMembers())
-
-    lobby.leave()
-  })
+  // client.matchmaking.getLobbies().then(async (lobbies) => {
+  //   console.log('Lobbies', lobbies)
+  //   const lobby = await lobbies[0].join()
+  //   console.log(lobby.getMembers())
+  //
+  //   lobby.leave()
+  // })
 }
 
 Renderer.init(canvas).then(async (renderer) => {

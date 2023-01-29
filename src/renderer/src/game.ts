@@ -3,12 +3,13 @@ import Controller from './controller'
 import Keyboard from './keyboard'
 import VoxelCollection from './voxel-collection'
 import Physics from './physics'
-import {mat4, vec3, vec4} from 'gl-matrix'
+import { mat4, vec3, vec4 } from 'gl-matrix'
 import Mouse from './mouse'
 import { QueueItem } from './queueItem'
 import Raycast from './raycast'
 import Network from './network'
 import Player from './player'
+import Density from './density'
 
 declare global {
   interface Window {
@@ -31,6 +32,7 @@ class Game {
   private raycast: Raycast
   private network: Network
   private players: Map<string, Player>
+  private density: Density
 
   private constructor(
     voxelWorker: ContouringWorker,
@@ -41,7 +43,8 @@ class Game {
     collection: VoxelCollection,
     raycast: Raycast,
     network: Network,
-    players: Map<string, Player>
+    players: Map<string, Player>,
+    density: Density
   ) {
     this.voxelWorker = voxelWorker
     this.keyboard = keyboard
@@ -52,6 +55,7 @@ class Game {
     this.raycast = raycast
     this.network = network
     this.players = players
+    this.density = density
   }
 
   static async init(device: GPUDevice): Promise<Game> {
@@ -76,14 +80,21 @@ class Game {
     //this.player = new Player(vec3.fromValues(2000000.0, 100.0, 100.0));
     //this.player.init(device);
 
+    const density = await Density.init(device)
+    density.update(device, [
+      { x: 1995000, y: 0, z: 0 },
+      { x: 2005000, y: 0, z: 0 }
+    ])
+
     const physics = await Physics.init(
       device,
-      vec4.fromValues(controller.position[0], controller.position[1], controller.position[2], 0)
+      vec4.fromValues(controller.position[0], controller.position[1], controller.position[2], 0),
+      density
     )
 
     const collection = await VoxelCollection.init(device)
 
-    const raycast = await Raycast.init(device)
+    const raycast = await Raycast.init(device, density)
 
     // if (module.hot) {
     //   module.hot.accept(['./voxel-collection.ts'], async () => {
@@ -101,7 +112,8 @@ class Game {
       collection,
       raycast,
       network,
-      players
+      players,
+      density
     )
 
     voxelWorker.onmessage = ({ data }): void => {
@@ -155,7 +167,8 @@ class Game {
     this.voxelWorker.postMessage({
       stride: this.stride,
       position: this.controller.position,
-      detail: data
+      detail: data,
+      density: this.density.augmentations
     })
 
     this.stride /= 2

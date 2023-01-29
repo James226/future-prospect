@@ -45,7 +45,7 @@ function equal(a: WorldPosition, b: WorldPosition): boolean {
     }
 
     generating = true
-    const { position, detail } = e.data
+    const { position, detail, density } = e.data
 
     if (detail) {
       const { x, y, z, s } = detail
@@ -53,7 +53,8 @@ function equal(a: WorldPosition, b: WorldPosition): boolean {
         device,
         queue,
         vec3.fromValues(x - 31 * s * 0.5, y - 31 * s * 0.5, z - 31 * s * 0.5),
-        s
+        s,
+        density
       )
 
       ctx.postMessage(
@@ -151,7 +152,8 @@ function equal(a: WorldPosition, b: WorldPosition): boolean {
               y * chunkSize - halfChunk,
               z * chunkSize - halfChunk
             ),
-            result.stride
+            result.stride,
+            density
           )
           .then(({ vertices, normals, indices }) => {
             //console.log(`Block generated with ${vertices.length} in ${performance.now() - timer}`);

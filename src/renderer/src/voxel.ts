@@ -2,7 +2,7 @@ import { vec3 } from 'gl-matrix'
 import ComputeCorners from './compute-corners.wgsl?raw'
 import ComputePositions from './compute-positions.wgsl?raw'
 import ComputeVoxels from './compute-voxels.wgsl?raw'
-import Density from './density.wgsl?raw'
+import Density, { DensityInstance } from './density'
 
 import Random from 'seedrandom'
 import ContourCells from './contouring'
@@ -135,8 +135,9 @@ export default class Voxel {
   private computeVoxelsPipeline: GPUComputePipeline
   private computeVoxelsBindGroup: GPUBindGroup
   private voxelReadBuffer: GPUBuffer
-  private densityBindGroup: GPUBindGroup
-  private mainDensityBindGroup: GPUBindGroup
+  private density: Density
+  private densityBindGroup: DensityInstance
+  private mainDensityBindGroup: DensityInstance
 
   private constructor(
     computePipeline: GPUComputePipeline,
@@ -157,8 +158,9 @@ export default class Voxel {
     computeVoxelsPipeline: GPUComputePipeline,
     computeVoxelsBindGroup: GPUBindGroup,
     voxelReadBuffer: GPUBuffer,
-    densityBindGroup: GPUBindGroup,
-    mainDensityBindGroup: GPUBindGroup
+    density: Density,
+    densityBindGroup: DensityInstance,
+    mainDensityBindGroup: DensityInstance
   ) {
     this.computePipeline = computePipeline
     this.computeCornersPipeline = computeCornersPipeline
@@ -178,12 +180,13 @@ export default class Voxel {
     this.computeVoxelsPipeline = computeVoxelsPipeline
     this.computeVoxelsBindGroup = computeVoxelsBindGroup
     this.voxelReadBuffer = voxelReadBuffer
+    this.density = density
     this.densityBindGroup = densityBindGroup
     this.mainDensityBindGroup = mainDensityBindGroup
   }
 
   static async init(device: GPUDevice): Promise<Voxel> {
-    const computeVoxelsCode = ComputeVoxels.replace('#import density', Density)
+    const computeVoxelsCode = Density.patch(ComputeVoxels)
     const start = performance.now()
     console.log('Start loading voxel engine', performance.now() - start)
 
@@ -393,41 +396,9 @@ export default class Voxel {
       usage: GPUBufferUsage.COPY_DST | GPUBufferUsage.MAP_READ
     })
 
-    const augmentationSize = 4 * 4 + 4 * 4
-    const augmentationBuffer = device.createBuffer({
-      size: augmentationSize,
-      usage: GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_DST,
-      mappedAtCreation: true
-    })
-
-    const augmentations = new Float32Array(augmentationBuffer.getMappedRange())
-    augmentations[0] = 1995000.0
-
-    augmentationBuffer.unmap()
-
-    const densityBindGroup = device.createBindGroup({
-      layout: computePipeline.getBindGroupLayout(1),
-      entries: [
-        {
-          binding: 0,
-          resource: {
-            buffer: augmentationBuffer
-          }
-        }
-      ]
-    })
-
-    const mainDensityBindGroup = device.createBindGroup({
-      layout: computeVoxelsPipeline.getBindGroupLayout(1),
-      entries: [
-        {
-          binding: 0,
-          resource: {
-            buffer: augmentationBuffer
-          }
-        }
-      ]
-    })
+    const density = await Density.init(device)
+    const densityBindGroup = await density.apply(device, computePipeline)
+    const mainDensityBindGroup = await density.apply(device, computeVoxelsPipeline)
 
     console.log('Done', performance.now() - start)
 
@@ -450,6 +421,7 @@ export default class Voxel {
       computeVoxelsPipeline,
       computeVoxelsBindGroup,
       voxelReadBuffer,
+      density,
       densityBindGroup,
       mainDensityBindGroup
     )
@@ -459,7 +431,8 @@ export default class Voxel {
     device,
     queue,
     position,
-    stride
+    stride,
+    density
   ): Promise<{
     vertices: Float32Array
     normals: Float32Array
@@ -469,6 +442,8 @@ export default class Voxel {
     if (!stride) stride = 1
 
     return new Promise((resolve, _) => {
+      this.density.updateRaw(device, density)
+
       const permutations = new Int32Array(512)
 
       const random = new Random('James')
@@ -498,7 +473,7 @@ export default class Voxel {
       const computePassEncoder = computeEncoder.beginComputePass()
       computePassEncoder.setPipeline(this.computePipeline)
       computePassEncoder.setBindGroup(0, this.computeBindGroup)
-      computePassEncoder.setBindGroup(1, this.densityBindGroup)
+      this.densityBindGroup.apply(computePassEncoder)
       computePassEncoder.dispatchWorkgroups(octreeSize + 1, octreeSize + 1, octreeSize + 1)
       computePassEncoder.end()
 
@@ -567,7 +542,7 @@ export default class Voxel {
           const computePassEncoder = computeEncoder.beginComputePass()
           computePassEncoder.setPipeline(this.computeVoxelsPipeline)
           computePassEncoder.setBindGroup(0, this.computeVoxelsBindGroup)
-          computePassEncoder.setBindGroup(1, this.mainDensityBindGroup)
+          this.mainDensityBindGroup.apply(computePassEncoder)
           computePassEncoder.dispatchWorkgroups(dispatchCount)
           computePassEncoder.end()
 

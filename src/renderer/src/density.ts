@@ -1,66 +1,90 @@
 import DensityShader from './density.wgsl?raw'
 
-interface DensityModel {
+export interface DensityModel {
   x: number
   y: number
   z: number
 }
 
-export default class Density {
-  private readonly densityBindGroup: GPUBindGroup
-  private readonly augmentationBuffer: GPUBuffer
+export class DensityInstance {
+  private readonly bindGroup: GPUBindGroup
 
-  private constructor(augmentationBuffer: GPUBuffer, densityBindGroup: GPUBindGroup) {
-    this.augmentationBuffer = augmentationBuffer
-    this.densityBindGroup = densityBindGroup
+  constructor(bindGroup: GPUBindGroup) {
+    this.bindGroup = bindGroup
   }
 
-  static async init(device: GPUDevice, pipeline: GPUComputePipeline): Promise<Density> {
-    const augmentationSize = 4 * 12
+  apply(encoder: GPUComputePassEncoder): void {
+    encoder.setBindGroup(1, this.bindGroup)
+  }
+}
+
+export default class Density {
+  private readonly augmentationBuffer: GPUBuffer
+  public augmentations: Float32Array
+
+  private constructor(augmentationBuffer: GPUBuffer) {
+    this.augmentationBuffer = augmentationBuffer
+    this.augmentations = new Float32Array()
+  }
+
+  static async init(device: GPUDevice): Promise<Density> {
+    const augmentationSize = 5 * Float32Array.BYTES_PER_ELEMENT * 2
     const augmentationBuffer = device.createBuffer({
       size: augmentationSize,
       usage: GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_DST,
       mappedAtCreation: false
     })
+
+    const density = new Density(augmentationBuffer)
+    return density
+  }
+
+  async apply(device: GPUDevice, pipeline: GPUComputePipeline): Promise<DensityInstance> {
     const densityBindGroup = device.createBindGroup({
       layout: pipeline.getBindGroupLayout(1),
       entries: [
         {
           binding: 0,
           resource: {
-            buffer: augmentationBuffer
+            buffer: this.augmentationBuffer
           }
         }
       ]
     })
 
-    const density = new Density(augmentationBuffer, densityBindGroup)
-    density.update(device, [{ x: 1995000, y: 0, z: 0 }])
-    return density
+    return new DensityInstance(densityBindGroup)
   }
 
   update(device: GPUDevice, densityArray: DensityModel[]): void {
-    const augmentations = new Float32Array(densityArray.length * 12)
+    this.augmentations = new Float32Array(densityArray.length * 5)
     for (let i = 0; i < densityArray.length; i++) {
-      augmentations[i * 12] = densityArray[i].x
-      augmentations[i * 12 + 1] = densityArray[i].y
-      augmentations[i * 12 + 2] = densityArray[i].z
+      this.augmentations[i * 5] = densityArray[i].x
+      this.augmentations[i * 5 + 1] = densityArray[i].y
+      this.augmentations[i * 5 + 2] = densityArray[i].z
     }
 
     device.queue.writeBuffer(
       this.augmentationBuffer,
       0,
-      augmentations.buffer,
-      augmentations.byteOffset,
-      augmentations.byteLength
+      this.augmentations.buffer,
+      this.augmentations.byteOffset,
+      this.augmentations.byteLength
+    )
+  }
+
+  updateRaw(device: GPUDevice, densityArray: Float32Array): void {
+    this.augmentations = densityArray
+
+    device.queue.writeBuffer(
+      this.augmentationBuffer,
+      0,
+      this.augmentations.buffer,
+      this.augmentations.byteOffset,
+      this.augmentations.byteLength
     )
   }
 
   static patch(shader: string): string {
     return shader.replace('#import density', DensityShader)
-  }
-
-  apply(encoder: GPUComputePassEncoder): void {
-    encoder.setBindGroup(1, this.densityBindGroup)
   }
 }

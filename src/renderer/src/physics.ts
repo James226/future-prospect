@@ -1,6 +1,6 @@
 import { vec3, vec4 } from 'gl-matrix'
 import Physics from './physics.wgsl?raw'
-import Density from './density'
+import Density, { DensityInstance } from './density'
 
 import Random from 'seedrandom'
 
@@ -13,7 +13,7 @@ export default class Voxel {
   private readonly actorsBuffer: GPUBuffer
   private readonly computeBindGroup: GPUBindGroup
   private readonly actorsReadBuffer: GPUBuffer
-  private readonly density: Density
+  private readonly density: DensityInstance
 
   private constructor(
     velocity: vec3,
@@ -22,7 +22,7 @@ export default class Voxel {
     actorsBuffer: GPUBuffer,
     computeBindGroup: GPUBindGroup,
     actorsReadBuffer: GPUBuffer,
-    density: Density
+    density: DensityInstance
   ) {
     this.velocity = velocity
     this.position = position
@@ -32,7 +32,8 @@ export default class Voxel {
     this.actorsReadBuffer = actorsReadBuffer
     this.density = density
   }
-  static async init(device: GPUDevice, position: vec4): Promise<Voxel> {
+
+  static async init(device: GPUDevice, position: vec4, density: Density): Promise<Voxel> {
     const physics = Density.patch(Physics)
 
     const velocity = vec3.fromValues(0, 0, 0)
@@ -91,7 +92,7 @@ export default class Voxel {
       usage: GPUBufferUsage.COPY_DST | GPUBufferUsage.MAP_READ
     })
 
-    const density = await Density.init(device, computePipeline)
+    const densityInstance = await density.apply(device, computePipeline)
 
     console.log('Physics engine loaded', performance.now() - start)
 
@@ -102,7 +103,7 @@ export default class Voxel {
       actorsBuffer,
       computeBindGroup,
       actorsReadBuffer,
-      density
+      densityInstance
     )
   }
 
