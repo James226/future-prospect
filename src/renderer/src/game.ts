@@ -10,12 +10,7 @@ import Raycast from './raycast'
 import Network from './network'
 import Player from './player'
 import Density from './density'
-
-declare global {
-  interface Window {
-    generate: (data: never) => void
-  }
-}
+import WorldGenerator from './world-generator'
 
 class Game {
   private loaded = false
@@ -124,9 +119,79 @@ class Game {
 
         document.getElementById('loading')!.style.display = 'none'
         game.loaded = true
-        game.generate(device, null)
 
-        window.generate = (data): void => game.generate(device, data)
+        const stride = 32
+        const chunkSize = 31
+        const worldGenerator = new WorldGenerator(stride)
+
+        let info = worldGenerator.init(
+          controller.position[0] / chunkSize,
+          controller.position[1] / chunkSize,
+          controller.position[2] / chunkSize
+        )
+
+        const t0 = performance.now()
+
+        voxelWorker.onmessage = ({ data }): void => {
+          const { type, vertices, normals, indices, corners, stride } = data
+          switch (type) {
+            case 'clear':
+              collection.freeAll()
+              break
+            case 'update': {
+              if (vertices.byteLength) {
+                collection.set(
+                  device,
+                  `${data.ix}x${data.iy}x${data.iz}`,
+                  { x: data.x, y: data.y, z: data.z },
+                  stride,
+                  new Float32Array(vertices),
+                  new Float32Array(normals),
+                  new Uint16Array(indices),
+                  new Uint32Array(corners)
+                )
+              } else {
+                collection.free(`${data.ix}x${data.iy}x${data.iz}`)
+              }
+              break
+            }
+          }
+
+          if (info.stride > 2 << 14) {
+            console.log(`Generation complete in ${performance.now() - t0} milliseconds`)
+            return
+          }
+
+          const r = worldGenerator.next(info)
+          const result = r[0]
+          voxelWorker.postMessage({
+            stride: stride,
+            position: controller.position,
+            detail: {
+              x: result.x,
+              y: result.y,
+              z: result.z,
+              s: result.stride
+            },
+            density: density.augmentations
+          })
+          info = r[1]
+        }
+
+        const r = worldGenerator.next(info)
+        const result = r[0]
+        voxelWorker.postMessage({
+          stride: stride,
+          position: controller.position,
+          detail: {
+            x: result.x,
+            y: result.y,
+            z: result.z,
+            s: result.stride
+          },
+          density: density.augmentations
+        })
+        info = r[1]
       }
     }
 

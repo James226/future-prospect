@@ -513,10 +513,10 @@ export default class Voxel {
         0,
         Uint32Array.BYTES_PER_ELEMENT * 32 * 32 * 32
       )
-
       queue({
         items: [computeEncoder.finish(), copyEncoder.finish()],
         callback: async () => {
+
           await this.cornerMaterialsRead.mapAsync(GPUMapMode.READ)
           const corners = new Uint32Array(this.cornerMaterialsRead.getMappedRange()).slice()
           this.cornerMaterialsRead.unmap()
