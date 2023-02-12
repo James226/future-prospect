@@ -30,7 +30,7 @@ export default class Controller {
 
     this.forward = vec3.create()
     this.right = vec3.create()
-    this.up = vec3.create()
+    this.up = vec3.fromValues(0, 1, 0)
 
     this.noise = null
   }
@@ -48,11 +48,18 @@ export default class Controller {
     this.noise.connect(dist)
   }
 
-  update(device: GPUDevice, projectionMatrix: mat4, queue, raycast: Raycast): void {
+  update(
+    device: GPUDevice,
+    projectionMatrix: mat4,
+    queue,
+    raycast: Raycast,
+    deltaTime: number
+  ): void {
     const distance = this.keyboard.keydown('shift') ? 20 : 5
     vec3.zero(this.velocity)
     if (this.keyboard.keydown('w')) {
       vec3.sub(this.velocity, this.velocity, this.forward)
+      vec3.add(this.velocity, this.velocity, this.up)
     }
 
     if (this.keyboard.keydown('s')) {
@@ -111,16 +118,23 @@ export default class Controller {
         )
     }
 
+    const gravity = vec3.fromValues(2000000.0, 100.0, 100.0)
+    const gravityDirection = vec3.sub(vec3.create(), this.position, gravity)
+    vec3.normalize(gravityDirection, gravityDirection)
+    const orientationDirection = quat.rotationTo(
+      quat.create(),
+      vec3.scale(vec3.create(), this.up, 1),
+      vec3.scale(vec3.create(), gravityDirection, 1)
+    )
+    quat.multiply(orientationDirection, orientationDirection, this.rotation)
+    quat.slerp(this.rotation, this.rotation, orientationDirection, 0.01 * deltaTime)
+
     quat.rotateX(this.rotation, this.rotation, glMatrix.toRadian(-this.mouse.position.y * 0.08))
     quat.rotateY(this.rotation, this.rotation, glMatrix.toRadian(-this.mouse.position.x * 0.08))
 
     mat4.identity(this.viewMatrix)
     const rotMat = mat4.fromQuat(mat4.create(), this.rotation)
     mat4.translate(this.viewMatrix, this.viewMatrix, this.position)
-
-    const gravity = vec3.fromValues(2000000.0, 0.0, 0.0)
-    const gravityDirection = vec3.sub(vec3.create(), this.position, gravity)
-    vec3.normalize(gravityDirection, gravityDirection)
 
     mat4.translate(
       this.viewMatrix,

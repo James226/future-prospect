@@ -21,6 +21,7 @@ class Game {
   private loaded = false
   private generating = false
   private lastUpdate = 0
+  private lastTimestamp = 0
   private stride = 16
 
   private voxelWorker: ContouringWorker
@@ -181,6 +182,8 @@ class Game {
   }
 
   async update(device: GPUDevice, projectionMatrix: mat4, timestamp: number): Promise<void> {
+    const deltaTime = timestamp - this.lastTimestamp
+
     if (this.keyboard.keypress('g')) {
       this.generate(device, null)
     }
@@ -212,7 +215,7 @@ class Game {
     await this.physics.update(device, (q: QueueItem) => queue(q))
 
     this.controller.position = this.physics.position as vec3
-    this.controller.update(device, projectionMatrix, queue, this.raycast)
+    this.controller.update(device, projectionMatrix, queue, this.raycast, deltaTime)
 
     const viewMatrix = this.controller.viewMatrix
 
@@ -224,6 +227,7 @@ class Game {
 
     this.keyboard.update()
     this.mouse.update()
+    this.lastTimestamp = timestamp;
   }
 
   draw(passEncoder: GPURenderPassEncoder): void {
