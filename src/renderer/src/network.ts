@@ -3,6 +3,7 @@ import Player from './player'
 import { vec3 } from 'gl-matrix'
 import jwt_decode from 'jwt-decode'
 import Controller from './controller'
+import ProtoSerializer from './network/proto-serializer'
 
 const apiUrl = 'wss://api.new-world.james-parker.dev'
 //const apiUrl = 'ws://localhost:3000'
@@ -12,29 +13,22 @@ interface State {
 }
 
 export default class Network {
-  private clientId: string
-  private socket: ReconnectingWebSocket
-  private readonly players: Map<string, Player>
-  private readonly createPlayer: (string) => Player
-
   private constructor(
-    clientId: string,
-    socket: ReconnectingWebSocket,
-    players: Map<string, Player>,
-    createPlayer: (string) => Player
-  ) {
-    this.clientId = clientId
-    this.socket = socket
-    this.players = players
-    this.createPlayer = createPlayer
-  }
+    private readonly serializer: ProtoSerializer,
+    private readonly clientId: string,
+    private readonly socket: ReconnectingWebSocket,
+    private readonly players: Map<string, Player>,
+    private readonly createPlayer: (string) => Player
+  ) {}
 
-  static init(
+  static async init(
     controller: Controller,
     players: Map<string, Player>,
     createPlayer: (string) => Player
   ): Promise<Network> {
     const socket = new ReconnectingWebSocket(`${apiUrl}/client`)
+
+    const serializer = await ProtoSerializer.init()
 
     return new Promise((resolve) => {
       socket.onmessage = (e: MessageEvent): void => {
@@ -50,7 +44,7 @@ export default class Network {
             )
           }
 
-          const network = new Network(message.clientId, socket, players, createPlayer)
+          const network = new Network(serializer, message.clientId, socket, players, createPlayer)
           socket.onmessage = network.processMessage.bind(network)
           resolve(network)
         }
@@ -59,7 +53,7 @@ export default class Network {
   }
 
   async sendData(data: object): Promise<void> {
-    this.socket.send(JSON.stringify({ ...data, clientId: this.clientId }))
+    this.socket.send(this.serializer.serialize({ ...data, clientId: this.clientId }))
   }
 
   private async processMessage(e: MessageEvent): Promise<void> {
