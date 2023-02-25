@@ -214,7 +214,7 @@ export default class Voxel {
       }
     })
 
-    const uniformBufferSize = 4 * 5
+    const uniformBufferSize = Math.max(4 * 5, 32)
     const uniformBuffer = device.createBuffer({
       size: uniformBufferSize,
       usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST

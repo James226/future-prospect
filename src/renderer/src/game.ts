@@ -198,6 +198,10 @@ class Game {
     return game
   }
 
+  destroy(): void {
+    this.voxelWorker.terminate()
+  }
+
   generate(device: GPUDevice, data: unknown): void {
     if (this.generating || !this.loaded) return
 
