@@ -13,46 +13,20 @@ import Density from './density'
 import WorldGenerator from './world-generator'
 
 class Game {
-  private loaded = false
-  private generating = false
   private lastUpdate = 0
   private lastTimestamp = 0
-  private stride = 16
-
-  private voxelWorker: ContouringWorker
-  private keyboard: Keyboard
-  private mouse: Mouse
-  private physics: Physics
-  private controller: Controller
-  private collection: VoxelCollection
-  private raycast: Raycast
-  private network: Network
-  private players: Map<string, Player>
-  private density: Density
 
   private constructor(
-    voxelWorker: ContouringWorker,
-    keyboard: Keyboard,
-    mouse: Mouse,
-    physics: Physics,
-    controller: Controller,
-    collection: VoxelCollection,
-    raycast: Raycast,
-    network: Network,
-    players: Map<string, Player>,
-    density: Density
-  ) {
-    this.voxelWorker = voxelWorker
-    this.keyboard = keyboard
-    this.mouse = mouse
-    this.physics = physics
-    this.controller = controller
-    this.collection = collection
-    this.raycast = raycast
-    this.network = network
-    this.players = players
-    this.density = density
-  }
+    private voxelWorker: ContouringWorker,
+    private keyboard: Keyboard,
+    private mouse: Mouse,
+    private physics: Physics,
+    private controller: Controller,
+    private collection: VoxelCollection,
+    private raycast: Raycast,
+    private network: Network,
+    private players: Map<string, Player>
+  ) {}
 
   static async init(device: GPUDevice): Promise<Game> {
     const keyboard = new Keyboard()
@@ -99,7 +73,18 @@ class Game {
       })
     }
 
-    const voxelWorker = new ContouringWorker()
+    const voxelWorker = await new Promise<ContouringWorker>((resolve) => {
+      const voxelWorker = new ContouringWorker()
+
+      voxelWorker.onmessage = ({ data }): void => {
+        if (data.type === 'init_complete') {
+          console.log('Received Voxel engine init complete')
+
+          resolve(voxelWorker)
+        }
+      }
+    })
+
     const game = new Game(
       voxelWorker,
       keyboard,
@@ -109,113 +94,33 @@ class Game {
       collection,
       raycast,
       network,
-      players,
-      density
+      players
     )
 
-    voxelWorker.onmessage = ({ data }): void => {
-      if (data.type === 'init_complete') {
-        console.log('Received Voxel engine init complete')
+    document.getElementById('loading')!.style.display = 'none'
 
-        document.getElementById('loading')!.style.display = 'none'
-        game.loaded = true
+    const stride = 32
+    const chunkSize = 31
+    const worldGenerator = new WorldGenerator(stride)
 
-        const stride = 32
-        const chunkSize = 31
-        const worldGenerator = new WorldGenerator(stride)
-
-        let info = worldGenerator.init(
-          controller.position[0] / chunkSize,
-          controller.position[1] / chunkSize,
-          controller.position[2] / chunkSize
-        )
-
-        const t0 = performance.now()
-
-        voxelWorker.onmessage = ({ data }): void => {
-          const { type, vertices, normals, indices, corners, stride } = data
-          switch (type) {
-            case 'clear':
-              collection.freeAll()
-              break
-            case 'update': {
-              if (vertices.byteLength) {
-                collection.set(
-                  device,
-                  `${data.ix}x${data.iy}x${data.iz}`,
-                  { x: data.x, y: data.y, z: data.z },
-                  stride,
-                  new Float32Array(vertices),
-                  new Float32Array(normals),
-                  new Uint16Array(indices),
-                  new Uint32Array(corners)
-                )
-              } else {
-                collection.free(`${data.ix}x${data.iy}x${data.iz}`)
-              }
-              break
-            }
-          }
-
-          if (info.stride > 2 << 14) {
-            console.log(`Generation complete in ${performance.now() - t0} milliseconds`)
-            return
-          }
-
-          const r = worldGenerator.next(info)
-          const result = r[0]
-          voxelWorker.postMessage({
-            stride: stride,
-            position: controller.position,
-            detail: {
-              x: result.x,
-              y: result.y,
-              z: result.z,
-              s: result.stride
-            },
-            density: density.augmentations
-          })
-          info = r[1]
-        }
-
-        const r = worldGenerator.next(info)
-        const result = r[0]
-        voxelWorker.postMessage({
-          stride: stride,
-          position: controller.position,
-          detail: {
-            x: result.x,
-            y: result.y,
-            z: result.z,
-            s: result.stride
-          },
-          density: density.augmentations
-        })
-        info = r[1]
-      }
-    }
-
-    return game
-  }
-
-  destroy(): void {
-    this.voxelWorker.terminate()
-  }
-
-  generate(device: GPUDevice, data: unknown): void {
-    if (this.generating || !this.loaded) return
+    let info = worldGenerator.init(
+      controller.position[0] / chunkSize,
+      controller.position[1] / chunkSize,
+      controller.position[2] / chunkSize
+    )
 
     const t0 = performance.now()
 
-    this.voxelWorker.onmessage = ({ data }): void => {
-      const { type, vertices, normals, indices, corners, stride } = data
+    voxelWorker.onmessage = ({ data }): void => {
+      const { type, vertices, normals, indices, corners, stride, consistency } = data
+      console.log(consistency, vertices.byteLength)
       switch (type) {
         case 'clear':
-          this.collection.freeAll()
+          collection.freeAll()
           break
         case 'update': {
           if (vertices.byteLength) {
-            this.collection.set(
+            collection.set(
               device,
               `${data.ix}x${data.iy}x${data.iz}`,
               { x: data.x, y: data.y, z: data.z },
@@ -226,36 +131,57 @@ class Game {
               new Uint32Array(corners)
             )
           } else {
-            this.collection.free(`${data.ix}x${data.iy}x${data.iz}`)
+            collection.free(`${data.ix}x${data.iy}x${data.iz}`)
           }
           break
         }
       }
+
+      if (info.stride > 2 << 14) {
+        console.log(`Generation complete in ${performance.now() - t0} milliseconds`)
+        return
+      }
+
+      const r = worldGenerator.next(info)
+      const result = r[0]
+      voxelWorker.postMessage({
+        stride: stride,
+        position: controller.position,
+        detail: {
+          x: result.x,
+          y: result.y,
+          z: result.z,
+          s: result.stride
+        },
+        density: density.augmentations
+      })
+      info = r[1]
     }
 
-    this.collection.freeAll()
-
-    this.voxelWorker.postMessage({
-      stride: this.stride,
-      position: this.controller.position,
-      detail: data,
-      density: this.density.augmentations
+    const r = worldGenerator.next(info)
+    const result = r[0]
+    voxelWorker.postMessage({
+      stride: stride,
+      position: controller.position,
+      detail: {
+        x: result.x,
+        y: result.y,
+        z: result.z,
+        s: result.stride
+      },
+      density: density.augmentations
     })
+    info = r[1]
 
-    this.stride /= 2
-    if (this.stride < 1) this.stride = 32
+    return game
+  }
 
-    this.generating = false
-
-    console.log(`Generation complete in ${performance.now() - t0} milliseconds`)
+  destroy(): void {
+    this.voxelWorker.terminate()
   }
 
   async update(device: GPUDevice, projectionMatrix: mat4, timestamp: number): Promise<void> {
     const deltaTime = timestamp - this.lastTimestamp
-
-    if (this.keyboard.keypress('g')) {
-      this.generate(device, null)
-    }
 
     // Disable regeneration of world
     if (timestamp - this.lastUpdate > 10000) {
@@ -273,7 +199,7 @@ class Game {
     }
 
     const queue = (item: QueueItem): void => {
-      device.queue.onSubmittedWorkDone().then((_) => {
+      device.queue.onSubmittedWorkDone().then(() => {
         item.callback()
       })
 
@@ -296,7 +222,7 @@ class Game {
 
     this.keyboard.update()
     this.mouse.update()
-    this.lastTimestamp = timestamp;
+    this.lastTimestamp = timestamp
   }
 
   draw(passEncoder: GPURenderPassEncoder): void {
