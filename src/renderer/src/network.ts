@@ -53,7 +53,8 @@ export default class Network {
   }
 
   async sendData(data: object): Promise<void> {
-    this.socket.send(this.serializer.serialize({ ...data, clientId: this.clientId }))
+    //this.socket.send(this.serializer.serialize({ ...data, clientId: this.clientId }))
+    this.socket.send(JSON.stringify({ ...data, clientId: this.clientId }))
   }
 
   private async processMessage(e: MessageEvent): Promise<void> {

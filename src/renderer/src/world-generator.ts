@@ -84,10 +84,11 @@ export default class WorldGenerator {
     if (stride === this.minStride) {
       return layer
     }
-    if (stride === this.minStride * 2) {
-      return layer + 1
-    }
-    return layer + 2
+    return 2
+    // if (stride === this.minStride * 2) {
+    //   return layer + 1
+    // }
+    // return layer + 2
   }
 
   radius(layer: number, stride: number, previousOffset: number): number {
@@ -95,8 +96,9 @@ export default class WorldGenerator {
   }
 
   layerCount(stride: number): number {
-    if (stride == this.minStride * 2) return 3
-    return 2
+    //if (stride == this.minStride * 2) return 3
+    if (stride == this.minStride) return 2
+    return 1
   }
 
   next(info: WorldGeneratorInfo): [WorldPosition, WorldGeneratorInfo] {

@@ -12,6 +12,7 @@ import Player from './player'
 import Density from './density'
 import WorldGenerator, { WorldGeneratorInfo } from './world-generator'
 import { Camera } from './camera'
+import Pointer from "./pointer";
 
 class Game {
   private lastUpdate = 0
@@ -29,6 +30,7 @@ class Game {
     private network: Network,
     private players: Map<string, Player>,
     private density: Density,
+    private pointer: Pointer,
     private generate: () => void
   ) {}
 
@@ -101,33 +103,31 @@ class Game {
     let generating = false
 
     voxelWorker.onmessage = ({ data }): void => {
-      const { type, vertices, normals, indices, corners, stride } = data
+      const { type, vertices, consistency, normals, indices, corners, stride } = data
       switch (type) {
         case 'clear':
           collection.freeAll()
           break
         case 'update': {
-          if (vertices.byteLength) {
-            collection.set(
-              device,
-              `${data.ix}x${data.iy}x${data.iz}`,
-              { x: data.x, y: data.y, z: data.z },
-              stride,
-              new Float32Array(vertices),
-              new Float32Array(normals),
-              new Uint16Array(indices),
-              new Uint32Array(corners)
-            )
-          } else {
-            collection.free(`${data.ix}x${data.iy}x${data.iz}`)
-          }
+          collection.set(
+            device,
+            `${data.ix}x${data.iy}x${data.iz}`,
+            { x: data.x, y: data.y, z: data.z },
+            { x: data.ix, y: data.iy, z: data.iz },
+            stride,
+            new Float32Array(vertices),
+            new Float32Array(normals),
+            new Uint16Array(indices),
+            new Uint32Array(corners),
+            consistency
+          )
           break
         }
       }
 
       if (info.stride > 2 << 14) {
-        console.log(`Generation complete in ${performance.now() - t0} milliseconds`)
         generating = false
+        console.log(`Generation complete in ${performance.now() - t0} milliseconds with ${collection.objects.size} objects`)
         return
       }
 
@@ -174,6 +174,8 @@ class Game {
     }
     generate()
 
+    const pointer = new Pointer(device, controller, camera, raycast)
+
     const game = new Game(
       voxelWorker,
       keyboard,
@@ -186,6 +188,7 @@ class Game {
       network,
       players,
       density,
+      pointer,
       generate
     )
 
@@ -201,6 +204,14 @@ class Game {
   async update(device: GPUDevice, projectionMatrix: mat4, timestamp: number): Promise<void> {
     const deltaTime = timestamp - this.lastTimestamp
 
+    const queue = (item: QueueItem): void => {
+      device.queue.onSubmittedWorkDone().then(() => {
+        item.callback()
+      })
+
+      device.queue.submit(item.items)
+    }
+
     // Disable regeneration of world
     if (timestamp - this.lastUpdate > 10000) {
       //this.voxelWorker.postMessage({stride: this.stride, position: this.controller.position});
@@ -213,31 +224,33 @@ class Game {
         }
       })
 
+
+
       this.lastUpdate = timestamp
     }
 
-    const queue = (item: QueueItem): void => {
-      device.queue.onSubmittedWorkDone().then(() => {
-        item.callback()
-      })
-
-      device.queue.submit(item.items)
-    }
 
     if (this.keyboard.keypress('g')) {
       this.generate()
     }
 
+    const densityArray: { x: number; y: number; z: number }[] = []
+
     if (this.keyboard.keypress(' ')) {
+      const gravityDirection = vec3.create()
+      vec3.scale(gravityDirection, this.controller.up, 100)
+      vec3.add(gravityDirection, this.controller.position, gravityDirection)
+
       this.raycast
-        .cast(device, queue, this.controller.position, vec3.scale(vec3.create(), this.camera.forward, -1))
+        .cast(device, queue, gravityDirection, vec3.scale(vec3.create(), this.camera.forward, -1))
         .then((r) => {
           if (r === null) {
             console.log('No intersection found')
             return
           }
           console.log(r.position, r.distance)
-          this.density.update(device, [{ x: r.position[0], y: r.position[1], z: r.position[2] }])
+          densityArray.push({ x: r.position[0], y: r.position[1], z: r.position[2] })
+          this.density.update(device, densityArray)
           this.generate()
         })
     }
@@ -246,10 +259,12 @@ class Game {
     await this.physics.update(device, (q: QueueItem) => queue(q))
 
     this.controller.position = this.physics.position as vec3
-    this.controller.update(device, queue, this.raycast, deltaTime)
+    this.controller.update(deltaTime)
     this.camera.update(projectionMatrix)
 
     const viewMatrix = this.camera.viewMatrix
+
+    this.pointer.update(device, queue, viewMatrix)
 
     this.collection.update(device, viewMatrix, timestamp)
 
@@ -263,6 +278,7 @@ class Game {
   }
 
   draw(passEncoder: GPURenderPassEncoder): void {
+    this.pointer.draw(passEncoder)
     for (const id in this.players) {
       this.players[id].draw(passEncoder)
     }

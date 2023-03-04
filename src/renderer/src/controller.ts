@@ -9,9 +9,9 @@ export default class Controller {
   public position: vec3
   public velocity: vec3
 
-  private readonly forward: vec3
-  private readonly up: vec3
-  private readonly right: vec3
+  public readonly forward: vec3
+  public readonly up: vec3
+  public readonly right: vec3
   private readonly rotation: quat
 
   private noise: Tone.Noise | null
@@ -42,7 +42,7 @@ export default class Controller {
     this.noise.connect(dist)
   }
 
-  update(device: GPUDevice, queue, raycast: Raycast, deltaTime: number): void {
+  update(deltaTime: number): void {
     const distance = this.keyboard.keydown('shift') ? 20 : 5
     vec3.zero(this.velocity)
     if (this.keyboard.keydown('w')) {

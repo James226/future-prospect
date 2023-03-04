@@ -11,7 +11,14 @@ export default class VoxelObject {
   private uniformBindGroup: GPUBindGroup
   private pipeline: GPURenderPipeline
 
-  constructor(position: vec3, stride: number, device: GPUDevice, pipeline: GPURenderPipeline) {
+  constructor(
+    position: vec3,
+    public index: vec3,
+    stride: number,
+    device: GPUDevice,
+    pipeline: GPURenderPipeline,
+    public consistency: number
+  ) {
     this.position = position
     this.stride = stride
 
