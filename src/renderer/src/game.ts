@@ -10,7 +10,7 @@ import Raycast from './raycast'
 import Network from './network'
 import Player from './player'
 import Density from './density'
-import WorldGenerator from './world-generator'
+import WorldGenerator, { WorldGeneratorInfo } from './world-generator'
 import { Camera } from './camera'
 
 class Game {
@@ -27,7 +27,9 @@ class Game {
     private collection: VoxelCollection,
     private raycast: Raycast,
     private network: Network,
-    private players: Map<string, Player>
+    private players: Map<string, Player>,
+    private density: Density,
+    private generate: () => void
   ) {}
 
   static async init(device: GPUDevice): Promise<Game> {
@@ -89,32 +91,14 @@ class Game {
       }
     })
 
-    const game = new Game(
-      voxelWorker,
-      keyboard,
-      mouse,
-      physics,
-      controller,
-      camera,
-      collection,
-      raycast,
-      network,
-      players
-    )
-
-    document.getElementById('loading')!.style.display = 'none'
-
     const stride = 32
     const chunkSize = 31
     const worldGenerator = new WorldGenerator(stride)
 
-    let info = worldGenerator.init(
-      controller.position[0] / chunkSize,
-      controller.position[1] / chunkSize,
-      controller.position[2] / chunkSize
-    )
-
     const t0 = performance.now()
+
+    let info: WorldGeneratorInfo
+    let generating = false
 
     voxelWorker.onmessage = ({ data }): void => {
       const { type, vertices, normals, indices, corners, stride } = data
@@ -143,6 +127,7 @@ class Game {
 
       if (info.stride > 2 << 14) {
         console.log(`Generation complete in ${performance.now() - t0} milliseconds`)
+        generating = false
         return
       }
 
@@ -162,20 +147,49 @@ class Game {
       info = r[1]
     }
 
-    const r = worldGenerator.next(info)
-    const result = r[0]
-    voxelWorker.postMessage({
-      stride: stride,
-      position: controller.position,
-      detail: {
-        x: result.x,
-        y: result.y,
-        z: result.z,
-        s: result.stride
-      },
-      density: density.augmentations
-    })
-    info = r[1]
+    const generate = (): void => {
+      info = worldGenerator.init(
+        controller.position[0] / chunkSize,
+        controller.position[1] / chunkSize,
+        controller.position[2] / chunkSize
+      )
+      console.log(generating)
+      if (generating) return
+
+      generating = true
+      const r = worldGenerator.next(info)
+      const result = r[0]
+      voxelWorker.postMessage({
+        stride: stride,
+        position: controller.position,
+        detail: {
+          x: result.x,
+          y: result.y,
+          z: result.z,
+          s: result.stride
+        },
+        density: density.augmentations
+      })
+      info = r[1]
+    }
+    generate()
+
+    const game = new Game(
+      voxelWorker,
+      keyboard,
+      mouse,
+      physics,
+      controller,
+      camera,
+      collection,
+      raycast,
+      network,
+      players,
+      density,
+      generate
+    )
+
+    document.getElementById('loading')!.style.display = 'none'
 
     return game
   }
@@ -208,6 +222,24 @@ class Game {
       })
 
       device.queue.submit(item.items)
+    }
+
+    if (this.keyboard.keypress('g')) {
+      this.generate()
+    }
+
+    if (this.keyboard.keypress(' ')) {
+      this.raycast
+        .cast(device, queue, this.controller.position, vec3.scale(vec3.create(), this.camera.forward, -1))
+        .then((r) => {
+          if (r === null) {
+            console.log('No intersection found')
+            return
+          }
+          console.log(r.position, r.distance)
+          this.density.update(device, [{ x: r.position[0], y: r.position[1], z: r.position[2] }])
+          this.generate()
+        })
     }
 
     this.physics.velocity = this.controller.velocity
