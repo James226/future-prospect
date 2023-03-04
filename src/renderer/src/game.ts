@@ -117,32 +117,30 @@ class Game {
     const t0 = performance.now()
 
     voxelWorker.onmessage = ({ data }): void => {
-      const { type, vertices, normals, indices, corners, stride } = data
+      const { type, vertices, consistency, normals, indices, corners, stride } = data
       switch (type) {
         case 'clear':
           collection.freeAll()
           break
         case 'update': {
-          if (vertices.byteLength) {
-            collection.set(
-              device,
-              `${data.ix}x${data.iy}x${data.iz}`,
-              { x: data.x, y: data.y, z: data.z },
-              stride,
-              new Float32Array(vertices),
-              new Float32Array(normals),
-              new Uint16Array(indices),
-              new Uint32Array(corners)
-            )
-          } else {
-            collection.free(`${data.ix}x${data.iy}x${data.iz}`)
-          }
+          collection.set(
+            device,
+            `${data.ix}x${data.iy}x${data.iz}`,
+            { x: data.x, y: data.y, z: data.z },
+            { x: data.ix, y: data.iy, z: data.iz },
+            stride,
+            new Float32Array(vertices),
+            new Float32Array(normals),
+            new Uint16Array(indices),
+            new Uint32Array(corners),
+            consistency
+          )
           break
         }
       }
 
       if (info.stride > 2 << 14) {
-        console.log(`Generation complete in ${performance.now() - t0} milliseconds`)
+        console.log(`Generation complete in ${performance.now() - t0} milliseconds with ${collection.objects.size} objects`)
         return
       }
 
