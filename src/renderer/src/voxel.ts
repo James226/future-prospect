@@ -214,7 +214,7 @@ export default class Voxel {
       }
     })
 
-    const uniformBufferSize = 4 * 5
+    const uniformBufferSize = Math.max(4 * 5, 32)
     const uniformBuffer = device.createBuffer({
       size: uniformBufferSize,
       usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST
@@ -438,10 +438,11 @@ export default class Voxel {
     normals: Float32Array
     indices: Uint16Array
     corners: Uint32Array
+    consistency: number
   }> {
     if (!stride) stride = 1
 
-    return new Promise((resolve, _) => {
+    return new Promise((resolve) => {
       this.density.updateRaw(device, density)
 
       const permutations = new Int32Array(512)
@@ -513,7 +514,6 @@ export default class Voxel {
         0,
         Uint32Array.BYTES_PER_ELEMENT * 32 * 32 * 32
       )
-
       queue({
         items: [computeEncoder.finish(), copyEncoder.finish()],
         callback: async () => {
@@ -532,7 +532,8 @@ export default class Voxel {
               vertices: new Float32Array(),
               normals: new Float32Array(),
               indices: new Uint16Array(),
-              corners: new Uint32Array()
+              corners: corners,
+              consistency: corners[0]
             })
             return
           }
@@ -566,7 +567,7 @@ export default class Voxel {
 
               this.voxelReadBuffer.unmap()
 
-              resolve({ ...result, corners })
+              resolve({ ...result, corners, consistency: -1 })
             }
           })
         }

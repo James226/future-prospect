@@ -5,7 +5,7 @@ import * as Tone from 'tone'
 import Raycast from './raycast'
 
 export default class Controller {
-  public viewMatrix: mat4
+  public transformMatrix: mat4
   public position: vec3
   public velocity: vec3
 
@@ -23,7 +23,7 @@ export default class Controller {
     this.keyboard = keyboard
     this.mouse = mouse
 
-    this.viewMatrix = mat4.create()
+    this.transformMatrix = mat4.create()
     this.position = vec3.fromValues(0, 0.0, -300.0)
     this.velocity = vec3.fromValues(0, 0, 0)
     this.rotation = quat.create()
@@ -50,7 +50,6 @@ export default class Controller {
 
   update(
     device: GPUDevice,
-    projectionMatrix: mat4,
     queue,
     raycast: Raycast,
     deltaTime: number
@@ -129,27 +128,26 @@ export default class Controller {
     quat.multiply(orientationDirection, orientationDirection, this.rotation)
     quat.slerp(this.rotation, this.rotation, orientationDirection, 0.01 * deltaTime)
 
-    quat.rotateX(this.rotation, this.rotation, glMatrix.toRadian(-this.mouse.position.y * 0.08))
     quat.rotateY(this.rotation, this.rotation, glMatrix.toRadian(-this.mouse.position.x * 0.08))
 
-    mat4.identity(this.viewMatrix)
+    mat4.identity(this.transformMatrix)
     const rotMat = mat4.fromQuat(mat4.create(), this.rotation)
-    mat4.translate(this.viewMatrix, this.viewMatrix, this.position)
+    mat4.translate(this.transformMatrix, this.transformMatrix, this.position)
 
     mat4.translate(
-      this.viewMatrix,
-      this.viewMatrix,
+      this.transformMatrix,
+      this.transformMatrix,
       vec3.scale(gravityDirection, gravityDirection, 100)
     )
 
-    mat4.mul(this.viewMatrix, this.viewMatrix, rotMat)
-    mat4.invert(this.viewMatrix, this.viewMatrix)
+    mat4.mul(this.transformMatrix, this.transformMatrix, rotMat)
 
-    const inverted = mat4.invert(mat4.create(), this.viewMatrix)
-    vec3.normalize(this.right, <vec3>inverted.slice(0, 3))
-    vec3.normalize(this.up, <vec3>inverted.slice(4, 7))
-    vec3.normalize(this.forward, <vec3>inverted.slice(8, 11))
+    vec3.normalize(this.right, <vec3>this.transformMatrix.slice(0, 3))
+    vec3.normalize(this.up, <vec3>this.transformMatrix.slice(4, 7))
+    vec3.normalize(this.forward, <vec3>this.transformMatrix.slice(8, 11))
+  }
 
-    mat4.multiply(this.viewMatrix, projectionMatrix, this.viewMatrix)
+  getTransformMatrix(): mat4 {
+    return this.transformMatrix
   }
 }

@@ -14,36 +14,40 @@ const steamworks: typeof import('steamworks.js') = eval(
 )
 
 if (steamworks) {
-  const client = steamworks.init(480)
+  try {
+    const client = steamworks.init(480)
 
-  console.log(client.localplayer.getName())
-  client.localplayer.getSteamId()
+    console.log(client.localplayer.getName())
+    client.localplayer.getSteamId()
 
-  if (!client.achievement.activate('ACH_WIN_ONE_GAME')) {
-    console.log('Sad fish')
+    if (!client.achievement.activate('ACH_WIN_ONE_GAME')) {
+      console.log('Sad fish')
+    }
+
+    // client.workshop.createItem()
+    //   .then(async item => {
+    //     const update: UgcUpdate = {};
+    //     update.title = "Test";
+    //     await client.workshop.updateItem(item.itemId, update);
+    //     client.workshop.
+    //     console.log(item);
+    //   });
+
+    client.auth.getSessionTicket().then((ticket) => {
+      const buffer = ticket.getBytes()
+      console.log('ticket', buffer.toString('hex'))
+    })
+
+    // client.matchmaking.getLobbies().then(async (lobbies) => {
+    //   console.log('Lobbies', lobbies)
+    //   const lobby = await lobbies[0].join()
+    //   console.log(lobby.getMembers())
+    //
+    //   lobby.leave()
+    // })
+  } catch {
+    /* empty */
   }
-
-  // client.workshop.createItem()
-  //   .then(async item => {
-  //     const update: UgcUpdate = {};
-  //     update.title = "Test";
-  //     await client.workshop.updateItem(item.itemId, update);
-  //     client.workshop.
-  //     console.log(item);
-  //   });
-
-  // client.auth.getSessionTicket().then((ticket) => {
-  //   const buffer = ticket.getBytes()
-  //   console.log('ticket', buffer.toString('hex'))
-  // })
-
-  // client.matchmaking.getLobbies().then(async (lobbies) => {
-  //   console.log('Lobbies', lobbies)
-  //   const lobby = await lobbies[0].join()
-  //   console.log(lobby.getMembers())
-  //
-  //   lobby.leave()
-  // })
 }
 
 const renderer = await Renderer.init(canvas)
@@ -77,6 +81,11 @@ if (import.meta.hot) {
     game = await Game.init(renderer.device)
   })
 }
+
+window.addEventListener('beforeunload', () => {
+  renderer.running = false
+  game.destroy()
+})
 
 const doFrame: (number) => Promise<void> = async (timestamp: number) => {
   if (!renderer.running) return

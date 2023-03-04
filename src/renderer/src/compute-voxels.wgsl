@@ -107,15 +107,15 @@ fn Perlin(x1: f32, y1: f32, z1: f32) -> f32
 	} else {
 		Z = i32(z1) - 1;
 	}
-	
+
 	let x: f32 = x1 - f32(X);
 	let y: f32 = y1 - f32(Y);
 	let z: f32 = z1 - f32(Z);
-	
+
 	X = X & 255;
 	Y = Y & 255;
 	Z = Z & 255;
-	
+
 	let gi000: i32 = (perm.Perm[X + perm.Perm[Y + perm.Perm[Z] ] ] % 12);
 	let gi001: i32 = (perm.Perm[X + perm.Perm[Y + perm.Perm[Z + 1] ] ] % 12);
 	let gi010: i32 = (perm.Perm[X + perm.Perm[Y + 1 + perm.Perm[Z] ] ] % 12);
@@ -133,7 +133,7 @@ fn Perlin(x1: f32, y1: f32, z1: f32) -> f32
 	let n101: f32 = dot(Grad3[gi101], vec3<f32>(x - 1.0, y, z - 1.0));
 	let n011: f32 = dot(Grad3[gi011], vec3<f32>(x, y - 1.0, z - 1.0));
 	let n111: f32 = dot(Grad3[gi111], vec3<f32>(x - 1.0, y - 1.0, z - 1.0));
-	
+
 	let u: f32 = f32(x * x * x * (x * (x * 6.0 - 15.0) + 10.0));
 	let v: f32 = f32(y * y * y * (y * (y * 6.0 - 15.0) + 10.0));
 	let w: f32 = f32(z * z * z * (z * (z * 6.0 - 15.0) + 10.0));
@@ -144,7 +144,7 @@ fn Perlin(x1: f32, y1: f32, z1: f32) -> f32
 	let nxy0: f32 = mix(nx00, nx10, v);
 	let nxy1: f32 = mix(nx01, nx11, v);
 	let nxyz: f32 = mix(nxy0, nxy1, w);
-	
+
 	return nxyz;
 }
 
@@ -169,7 +169,7 @@ fn FractalNoise(octaves: i32, frequency: f32, lacunarity: f32, persistence: f32,
 			i = i + 1;
 		}
 	}
-	
+
 	return nois;
 }
 
@@ -181,11 +181,11 @@ fn FractalNoise1(frequency: f32, lacunarity: f32, persistence: f32, position: ve
 
 	var amplitude: f32 = 1.0;
 	p = p * frequency;
-	
+
 	nois = nois + Perlin(p.x, p.y, p.z) * amplitude;
 	p = p * lacunarity;
 	amplitude = amplitude * persistence;
-	
+
 	return nois;
 }
 
@@ -207,7 +207,7 @@ const PSUEDO_INVERSE_THRESHOLD: f32 = 0.00000001;
 fn svd_mul_matrix_vec(m: mat3x3<f32>, b: vec4<f32>) -> vec4<f32>
 {
 	var a: mat3x3<f32> = m;
-	
+
 	return vec4<f32>(
 		dot(vec4<f32>(a[0][0], a[0][1], a[0][2], 0.0), b),
 		dot(vec4<f32>(a[1][0], a[1][1], a[1][2], 0.0), b),
@@ -221,7 +221,7 @@ fn givens_coeffs_sym(a_pp: f32, a_pq: f32, a_qq: f32) -> vec2<f32>
 	if (a_pq == 0.0) {
 		return vec2<f32>(1.0, 0.0);
 	}
-	
+
 	let tau: f32 = (a_qq - a_pp) / (2.0 * a_pq);
 	let stt: f32 = sqrt(1.0 + tau * tau);
 	var tan: f32;
@@ -267,27 +267,27 @@ fn svd_rotate(a: i32, b: i32)
 	if (vtav[a][b] == 0.0) { return; }
 
 
-	
+
 	let coeffs: vec2<f32> = givens_coeffs_sym(vtav[a][a], vtav[a][b], vtav[b][b]);
 	let c: f32 = coeffs.x;
 	let s: f32 = coeffs.y;
-	
+
 	let rot1: vec2<f32> = svd_rotateq_xy(vtav[a][a], vtav[b][b], vtav[a][b], c, s);
 	vtav[a][a] = rot1.x;
 	vtav[b][b] = rot1.y;
-	
+
 	let rot2: vec2<f32> = svd_rotate_xy(vtav[0][3-b], vtav[1-a][2], c, s);
-	vtav[0][3-b] = rot2.x; 
+	vtav[0][3-b] = rot2.x;
 	vtav[1-a][2] = rot2.y;
-	
+
 	vtav[a][b] = 0.0;
-	
+
 	let rot3: vec2<f32> = svd_rotate_xy(v[0][a], v[0][b], c, s);
 	v[0][a] = rot3.x; v[0][b] = rot3.y;
-	
+
 	let rot4: vec2<f32> = svd_rotate_xy(v[1][a], v[1][b], c, s);
 	v[1][a] = rot4.x; v[1][b] = rot4.y;
-	
+
 	let rot5: vec2<f32> = svd_rotate_xy(v[2][a], v[2][b], c, s);
 	v[2][a] = rot5.x; v[2][b] = rot5.y;
 }
@@ -295,10 +295,10 @@ fn svd_rotate(a: i32, b: i32)
 fn svd_solve_sym(b: array<f32, 6>) -> vec4<f32>
 {
 	var a: array<f32, 6> = b;
-	
-	vtav = mat3x3<f32>( 
-		vec3<f32>(a[0], a[1], a[2]), 
-		vec3<f32>(0.0, a[3], a[4]), 
+
+	vtav = mat3x3<f32>(
+		vec3<f32>(a[0], a[1], a[2]),
+		vec3<f32>(0.0, a[3], a[4]),
 		vec3<f32>(0.0, 0.0, a[5])
 	);
 
@@ -358,9 +358,9 @@ fn svd_pseudoinverse(sigma: vec4<f32>, c: mat3x3<f32>) -> mat3x3<f32>
 fn svd_solve_ATA_Atb(a: vec4<f32>) -> vec4<f32>
 {
 	v = mat3x3<f32>(vec3<f32>(1.0, 0.0, 0.0), vec3<f32>(0.0, 1.0, 0.0), vec3<f32>(0.0, 0.0, 1.0));
-	
+
 	let sigma: vec4<f32> = svd_solve_sym(ATA);
-	
+
 	let Vinv: mat3x3<f32> = svd_pseudoinverse(sigma, v);
 	return svd_mul_matrix_vec(Vinv, a);
 }
@@ -387,13 +387,13 @@ fn qef_add(n: vec4<f32>, p: vec4<f32>)
 	ATA[3] = ATA[3] + n.y * n.y;
 	ATA[4] = ATA[4] + n.y * n.z;
 	ATA[5] = ATA[5] + n.z * n.z;
-	
+
 	let b: f32 = dot(p, n);
 	Atb.x = Atb.x +n.x * b;
 	Atb.y = Atb.y +n.y * b;
 	Atb.z = Atb.z +n.z * b;
 	btb = btb + b * b;
-	
+
 	pointaccum.x = pointaccum.x +p.x;
 	pointaccum.y = pointaccum.y +p.y;
 	pointaccum.z = pointaccum.z +p.z;
@@ -404,22 +404,22 @@ fn qef_calc_error(x: vec4<f32>) -> f32
 {
 	var tmp: vec4<f32> = svd_vmul_sym(x);
 	tmp = Atb - tmp;
-	
+
 	return dot(tmp, tmp);
 }
 
 fn qef_solve() -> vec4<f32>
 {
 	let masspoint: vec4<f32> = vec4<f32>(pointaccum.x / pointaccum.w, pointaccum.y / pointaccum.w, pointaccum.z / pointaccum.w, pointaccum.w / pointaccum.w);
-	
+
 	var A_mp: vec4<f32> = svd_vmul_sym(masspoint);
 	A_mp = Atb - A_mp;
-	
+
 	let x: vec4<f32> = svd_solve_ATA_Atb(A_mp);
-	
+
 	let error: f32 = qef_calc_error(x);
 	let r: vec4<f32> = x + masspoint;
-	
+
 	return vec4<f32>(r.x, r.y, r.z, error);
 }
 
@@ -555,7 +555,7 @@ fn computeMaterials(@builtin(global_invocation_id) GlobalInvocationID : vec3<u32
     let density: f32 = getDensity(cornerPos + uniforms.chunkPosition);
 
 		if (density < 0.0) {
-			if (length(cornerPos + uniforms.chunkPosition) < 2000.0) {
+			if (true || length(cornerPos + uniforms.chunkPosition) < 2000.0) {
         //cornerMaterials.cornerMaterials[index] = u32(random(vec2(f32(index))) * 255.0) + 1;
 			  cornerMaterials.cornerMaterials[index] = 256u;
 			} else {
