@@ -11,6 +11,7 @@ import Network from './network'
 import Player from './player'
 import Density from './density'
 import WorldGenerator from './world-generator'
+import { Camera } from './camera'
 
 class Game {
   private lastUpdate = 0
@@ -22,6 +23,7 @@ class Game {
     private mouse: Mouse,
     private physics: Physics,
     private controller: Controller,
+    private camera: Camera,
     private collection: VoxelCollection,
     private raycast: Raycast,
     private network: Network,
@@ -37,6 +39,8 @@ class Game {
 
     const controller = new Controller(keyboard, mouse)
     controller.init()
+
+    const camera = new Camera(controller, mouse)
 
     const players = new Map<string, Player>()
     const network = await Network.init(controller, players, (id) => {
@@ -91,6 +95,7 @@ class Game {
       mouse,
       physics,
       controller,
+      camera,
       collection,
       raycast,
       network,
@@ -112,8 +117,7 @@ class Game {
     const t0 = performance.now()
 
     voxelWorker.onmessage = ({ data }): void => {
-      const { type, vertices, normals, indices, corners, stride, consistency } = data
-      console.log(consistency, vertices.byteLength)
+      const { type, vertices, normals, indices, corners, stride } = data
       switch (type) {
         case 'clear':
           collection.freeAll()
@@ -210,9 +214,10 @@ class Game {
     await this.physics.update(device, (q: QueueItem) => queue(q))
 
     this.controller.position = this.physics.position as vec3
-    this.controller.update(device, projectionMatrix, queue, this.raycast, deltaTime)
+    this.controller.update(device, queue, this.raycast, deltaTime)
+    this.camera.update(projectionMatrix)
 
-    const viewMatrix = this.controller.viewMatrix
+    const viewMatrix = this.camera.viewMatrix
 
     this.collection.update(device, viewMatrix, timestamp)
 
