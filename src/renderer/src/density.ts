@@ -10,12 +10,21 @@ export enum DensityShape {
   Box
 }
 
+export enum DensityMaterial {
+  Air,
+  Rock,
+  Wood,
+  Fire
+}
+
 export interface DensityModel {
   x: number
   y: number
   z: number
+  size: number
   type: DensityType
   shape: DensityShape
+  material: DensityMaterial
 }
 
 export class DensityInstance {
@@ -41,7 +50,7 @@ export default class Density {
   }
 
   static async init(device: GPUDevice): Promise<Density> {
-    const augmentationSize = 8 * Float32Array.BYTES_PER_ELEMENT * 8
+    const augmentationSize = 64 * Float32Array.BYTES_PER_ELEMENT * 8 + 8
     const augmentationBuffer = device.createBuffer({
       size: augmentationSize,
       usage: GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_DST,
@@ -86,8 +95,9 @@ export default class Density {
       augmentations[i * 8] = densityArray[i].x
       augmentations[i * 8 + 1] = densityArray[i].y
       augmentations[i * 8 + 2] = densityArray[i].z
-      augmentations[i * 8 + 3] = 100.0
-      intAugmentations[i * 8 + 4] = densityArray[i].type | (densityArray[i].shape << 1)
+      augmentations[i * 8 + 3] = densityArray[i].size
+      intAugmentations[i * 8 + 4] =
+        densityArray[i].type | (densityArray[i].shape << 1) | (densityArray[i].material << 8)
     }
 
     device.queue.writeBuffer(

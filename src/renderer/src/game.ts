@@ -9,7 +9,7 @@ import { QueueItem } from './queueItem'
 import Raycast from './raycast'
 import Network from './network'
 import Player from './player'
-import Density, { DensityShape, DensityType } from './density'
+import Density, { DensityMaterial, DensityShape, DensityType } from './density'
 import WorldGenerator, { WorldGeneratorInfo } from './world-generator'
 import { Camera } from './camera'
 import Pointer from './pointer'
@@ -19,6 +19,8 @@ class Game {
   private lastTimestamp = 0
   private tool = DensityType.Add
   private shape = DensityShape.Sphere
+  private material = DensityMaterial.Rock
+  private size = 4
 
   private constructor(
     private voxelWorker: ContouringWorker,
@@ -57,9 +59,6 @@ class Game {
 
     await network.sendData({ type: 'move', position: { x: 0, y: 0, z: 0 } })
 
-    //this.player = new Player(vec3.fromValues(2000000.0, 100.0, 100.0));
-    //this.player.init(device);
-
     const density = await Density.init(device)
 
     const physics = await Physics.init(
@@ -91,7 +90,7 @@ class Game {
       }
     })
 
-    const stride = 8
+    const stride = 2
     const chunkSize = 31
     const worldGenerator = new WorldGenerator(stride)
 
@@ -218,8 +217,18 @@ class Game {
     if (this.keyboard.keydown('2')) this.tool = DensityType.Subtract
     if (this.keyboard.keydown('3')) this.shape = DensityShape.Box
     if (this.keyboard.keydown('4')) this.shape = DensityShape.Sphere
+    if (this.keyboard.keydown('5')) this.material = DensityMaterial.Rock
+    if (this.keyboard.keydown('6')) this.material = DensityMaterial.Wood
+    if (this.keyboard.keydown('7')) this.material = DensityMaterial.Fire
+    if (this.keyboard.keypress('=')) this.size = this.size * 2
+    if (this.keyboard.keypress('-')) this.size = Math.max(4, this.size / 2)
 
-    document.getElementById('tool').innerText = `${DensityType[this.tool]} - ${DensityShape[this.shape]}`
+    const tool = document.getElementById('tool')
+    if (tool) {
+      tool.innerText = `${DensityType[this.tool]} - ${DensityShape[this.shape]} - ${
+        DensityMaterial[this.material]
+      } - ${this.size}`
+    }
 
     // Disable regeneration of world
     if (timestamp - this.lastUpdate > 10000) {
@@ -257,8 +266,10 @@ class Game {
             x: r.position[0],
             y: r.position[1],
             z: r.position[2],
+            size: this.size,
             type: this.tool,
-            shape: this.shape
+            shape: this.shape,
+            material: this.material
           })
           this.generate()
         })

@@ -237,7 +237,7 @@ fn calculateDensity(worldPosition: vec3<f32>) -> Density {
     if (i >= count) { break; }
 
     let augmentation = augmentations.augmentations[i];
-    let shape = (augmentation.attributes & 0xE) >> 1;
+    let shape = (augmentation.attributes & 0xFE) >> 1;
     var density: f32 = 0.0;
     switch(shape) {
       case 0: {
@@ -252,7 +252,8 @@ fn calculateDensity(worldPosition: vec3<f32>) -> Density {
     }
 
     if ((augmentation.attributes & 0x1) == 0x1) {
-      result = add(result, density, MATERIAL_WOOD);
+      let material = (augmentation.attributes & 0x1FF00) >> 8;
+      result = add(result, density, material);
     } else {
       result = subtract(result, -density);
     }

@@ -1,20 +1,22 @@
 export default class Keyboard {
-  private readonly keys: Map<string, boolean>
+  private keys: Map<string, boolean>
+  private readonly bufferKeys: Map<string, boolean>
   private lastKeys: Map<string, boolean>
 
   constructor() {
     this.keys = new Map<string, boolean>()
+    this.bufferKeys = new Map<string, boolean>()
     this.lastKeys = new Map<string, boolean>()
   }
 
   init(): void {
     const keydown = (e: KeyboardEvent): void => {
       e.preventDefault()
-      this.keys.set(e.key.toLowerCase(), true)
+      this.bufferKeys.set(e.key.toLowerCase(), true)
     }
 
     const keyup = ({ key }: KeyboardEvent): void => {
-      this.keys.delete(key.toLowerCase())
+      this.bufferKeys.delete(key.toLowerCase())
     }
 
     document.addEventListener('keydown', keydown)
@@ -23,6 +25,7 @@ export default class Keyboard {
 
   update(): void {
     this.lastKeys = new Map(this.keys)
+    this.keys = new Map(this.bufferKeys)
   }
 
   keydown(key: string): boolean {
