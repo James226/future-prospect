@@ -2,7 +2,6 @@ import { glMatrix, mat4, quat, vec3 } from 'gl-matrix'
 import Keyboard from './keyboard'
 import Mouse from './mouse'
 import * as Tone from 'tone'
-import Raycast from './raycast'
 
 export default class Controller {
   public transformMatrix: mat4

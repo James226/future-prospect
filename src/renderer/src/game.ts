@@ -9,14 +9,16 @@ import { QueueItem } from './queueItem'
 import Raycast from './raycast'
 import Network from './network'
 import Player from './player'
-import Density from './density'
+import Density, { DensityShape, DensityType } from './density'
 import WorldGenerator, { WorldGeneratorInfo } from './world-generator'
 import { Camera } from './camera'
-import Pointer from "./pointer";
+import Pointer from './pointer'
 
 class Game {
   private lastUpdate = 0
   private lastTimestamp = 0
+  private tool = DensityType.Add
+  private shape = DensityShape.Sphere
 
   private constructor(
     private voxelWorker: ContouringWorker,
@@ -59,10 +61,6 @@ class Game {
     //this.player.init(device);
 
     const density = await Density.init(device)
-    density.update(device, [
-      { x: 2007000, y: 0, z: 1000 },
-      { x: 2007000, y: 0, z: 0 }
-    ])
 
     const physics = await Physics.init(
       device,
@@ -93,7 +91,7 @@ class Game {
       }
     })
 
-    const stride = 32
+    const stride = 8
     const chunkSize = 31
     const worldGenerator = new WorldGenerator(stride)
 
@@ -127,7 +125,11 @@ class Game {
 
       if (info.stride > 2 << 14) {
         generating = false
-        console.log(`Generation complete in ${performance.now() - t0} milliseconds with ${collection.objects.size} objects`)
+        console.log(
+          `Generation complete in ${performance.now() - t0} milliseconds with ${
+            collection.objects.size
+          } objects`
+        )
         return
       }
 
@@ -212,6 +214,11 @@ class Game {
       device.queue.submit(item.items)
     }
 
+    if (this.keyboard.keypress('1')) this.tool = DensityType.Add
+    if (this.keyboard.keypress('2')) this.tool = DensityType.Subtract
+    if (this.keyboard.keypress('3')) this.shape = DensityShape.Box
+    if (this.keyboard.keypress('4')) this.shape = DensityShape.Sphere
+
     // Disable regeneration of world
     if (timestamp - this.lastUpdate > 10000) {
       //this.voxelWorker.postMessage({stride: this.stride, position: this.controller.position});
@@ -224,17 +231,12 @@ class Game {
         }
       })
 
-
-
       this.lastUpdate = timestamp
     }
-
 
     if (this.keyboard.keypress('g')) {
       this.generate()
     }
-
-    const densityArray: { x: number; y: number; z: number }[] = []
 
     if (this.keyboard.keypress(' ')) {
       const gravityDirection = vec3.create()
@@ -249,8 +251,13 @@ class Game {
             return
           }
           console.log(r.position, r.distance)
-          densityArray.push({ x: r.position[0], y: r.position[1], z: r.position[2] })
-          this.density.update(device, densityArray)
+          this.density.modify(device, {
+            x: r.position[0],
+            y: r.position[1],
+            z: r.position[2],
+            type: this.tool,
+            shape: this.shape
+          })
           this.generate()
         })
     }

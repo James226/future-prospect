@@ -115,7 +115,7 @@ export default class Pointer {
   getTransformationMatrix(projectionMatrix): mat4 {
     const modelMatrix = mat4.create()
     mat4.translate(modelMatrix, modelMatrix, this.position)
-    mat4.scale(modelMatrix, modelMatrix, vec3.fromValues(100.0, 100.0, 100.0))
+    mat4.scale(modelMatrix, modelMatrix, vec3.fromValues(10.0, 10.0, 10.0))
 
     const modelViewProjectionMatrix = mat4.create()
     mat4.multiply(modelViewProjectionMatrix, projectionMatrix, modelMatrix)
@@ -136,7 +136,6 @@ export default class Pointer {
         .then((r) => {
           this.updating = false
           if (r === null) {
-            console.log('No intersection found')
             return
           }
           vec3.copy(this.position, r.position)
