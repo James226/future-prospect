@@ -4,7 +4,7 @@ import { vec3 } from 'gl-matrix'
 import VoxelObject from './voxel-object'
 import Density, { DensityInstance } from './density'
 
-const swapChainFormat = 'bgra8unorm'
+const swapChainFormat = navigator.gpu.getPreferredCanvasFormat()
 
 class Ray {
   public sign: number[] = []

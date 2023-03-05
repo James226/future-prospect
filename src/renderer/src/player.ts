@@ -53,7 +53,7 @@ export default class Player {
         entryPoint: 'main',
         targets: [
           {
-            format: 'bgra8unorm'
+            format: navigator.gpu.getPreferredCanvasFormat()
           }
         ]
       },

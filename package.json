@@ -15,7 +15,7 @@
     "dev": "electron-vite dev",
     "web": "vite dev",
     "build": "npm run typecheck && electron-vite build",
-    "predeploy": "vite build",
+    "predeploy": "vite build && echo 'webgpu.james-parker.dev' > ./src/renderer/dist/CNAME",
     "deploy": "gh-pages -d src/renderer/dist",
     "postinstall": "electron-builder install-app-deps",
     "build:win": "npm run build && electron-builder --win --config",

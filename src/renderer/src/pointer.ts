@@ -63,7 +63,7 @@ export default class Pointer {
         entryPoint: 'main',
         targets: [
           {
-            format: 'bgra8unorm'
+            format: navigator.gpu.getPreferredCanvasFormat()
           }
         ]
       },
@@ -124,7 +124,6 @@ export default class Pointer {
   }
 
   update(device: GPUDevice, queue, projectionMatrix: mat4): void {
-
     if (!this.updating) {
       this.updating = true
       const gravityDirection = vec3.create()
