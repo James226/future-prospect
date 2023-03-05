@@ -1,14 +1,16 @@
-import { glMatrix, mat4 } from 'gl-matrix'
+import { glMatrix, mat4, vec3 } from 'gl-matrix'
 import Controller from './controller'
 import Mouse from './mouse'
 
 export class Camera {
+  public forward: vec3
   public viewMatrix: mat4
   private rotation: number
 
   constructor(private controller: Controller, private mouse: Mouse) {
     this.viewMatrix = mat4.create()
     this.rotation = 0
+    this.forward = vec3.create()
   }
 
   update(projectionMatrix: mat4): void {
@@ -19,7 +21,16 @@ export class Camera {
 
     mat4.copy(this.viewMatrix, transformMatrix)
     mat4.rotateX(this.viewMatrix, this.viewMatrix, this.rotation)
+    vec3.normalize(this.forward, <vec3>this.viewMatrix.slice(8, 11))
+
     mat4.invert(this.viewMatrix, this.viewMatrix)
+
+    //vec3.normalize(this.right, <vec3>inverted.slice(0, 3))
+    //vec3.normalize(this.up, <vec3>inverted.slice(4, 7))
+
     mat4.multiply(this.viewMatrix, projectionMatrix, this.viewMatrix)
+
+
+
   }
 }

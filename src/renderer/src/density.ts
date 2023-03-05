@@ -1,9 +1,30 @@
 import DensityShader from './density.wgsl?raw'
 
+export enum DensityType {
+  Subtract,
+  Add
+}
+
+export enum DensityShape {
+  Sphere,
+  Box
+}
+
+export enum DensityMaterial {
+  Air,
+  Rock,
+  Wood,
+  Fire
+}
+
 export interface DensityModel {
   x: number
   y: number
   z: number
+  size: number
+  type: DensityType
+  shape: DensityShape
+  material: DensityMaterial
 }
 
 export class DensityInstance {
@@ -20,15 +41,16 @@ export class DensityInstance {
 
 export default class Density {
   private readonly augmentationBuffer: GPUBuffer
-  public augmentations: Float32Array
+  public augmentationArray: DensityModel[] = []
+  public augmentations: ArrayBuffer
 
   private constructor(augmentationBuffer: GPUBuffer) {
     this.augmentationBuffer = augmentationBuffer
-    this.augmentations = new Float32Array()
+    this.augmentations = new ArrayBuffer(Uint32Array.BYTES_PER_ELEMENT * 4)
   }
 
   static async init(device: GPUDevice): Promise<Density> {
-    const augmentationSize = 8 * Float32Array.BYTES_PER_ELEMENT * 2
+    const augmentationSize = 64 * Float32Array.BYTES_PER_ELEMENT * 8 + 8
     const augmentationBuffer = device.createBuffer({
       size: augmentationSize,
       usage: GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_DST,
@@ -54,19 +76,35 @@ export default class Density {
     return new DensityInstance(densityBindGroup)
   }
 
+  modify(device: GPUDevice, augmentation: DensityModel): void {
+    this.augmentationArray.push(augmentation)
+    this.update(device, this.augmentationArray)
+  }
+
   update(device: GPUDevice, densityArray: DensityModel[]): void {
-    this.augmentations = new Float32Array(densityArray.length * 8)
+    this.augmentations = new ArrayBuffer(
+      Uint32Array.BYTES_PER_ELEMENT * 4 + Uint32Array.BYTES_PER_ELEMENT * densityArray.length * 8
+    )
+
+    const header = new Uint32Array(this.augmentations, 0, 4)
+    header[0] = densityArray.length
+
+    const augmentations = new Float32Array(this.augmentations, Uint32Array.BYTES_PER_ELEMENT * 4)
+    const intAugmentations = new Uint32Array(this.augmentations, Uint32Array.BYTES_PER_ELEMENT * 4)
     for (let i = 0; i < densityArray.length; i++) {
-      this.augmentations[i * 8] = densityArray[i].x
-      this.augmentations[i * 8 + 1] = densityArray[i].y
-      this.augmentations[i * 8 + 2] = densityArray[i].z
+      augmentations[i * 8] = densityArray[i].x
+      augmentations[i * 8 + 1] = densityArray[i].y
+      augmentations[i * 8 + 2] = densityArray[i].z
+      augmentations[i * 8 + 3] = densityArray[i].size
+      intAugmentations[i * 8 + 4] =
+        densityArray[i].type | (densityArray[i].shape << 1) | (densityArray[i].material << 8)
     }
 
     device.queue.writeBuffer(
       this.augmentationBuffer,
       0,
-      this.augmentations.buffer,
-      this.augmentations.byteOffset,
+      this.augmentations,
+      0,
       this.augmentations.byteLength
     )
   }
@@ -77,8 +115,8 @@ export default class Density {
     device.queue.writeBuffer(
       this.augmentationBuffer,
       0,
-      this.augmentations.buffer,
-      this.augmentations.byteOffset,
+      this.augmentations,
+      0,
       this.augmentations.byteLength
     )
   }

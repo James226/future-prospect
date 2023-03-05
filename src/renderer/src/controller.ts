@@ -2,27 +2,20 @@ import { glMatrix, mat4, quat, vec3 } from 'gl-matrix'
 import Keyboard from './keyboard'
 import Mouse from './mouse'
 import * as Tone from 'tone'
-import Raycast from './raycast'
 
 export default class Controller {
   public transformMatrix: mat4
   public position: vec3
   public velocity: vec3
 
-  private keyboard: Keyboard
-  private mouse: Mouse
-
-  private readonly forward: vec3
-  private readonly up: vec3
-  private readonly right: vec3
+  public readonly forward: vec3
+  public readonly up: vec3
+  public readonly right: vec3
   private readonly rotation: quat
 
   private noise: Tone.Noise | null
 
-  constructor(keyboard: Keyboard, mouse: Mouse) {
-    this.keyboard = keyboard
-    this.mouse = mouse
-
+  constructor(private keyboard: Keyboard, private mouse: Mouse) {
     this.transformMatrix = mat4.create()
     this.position = vec3.fromValues(0, 0.0, -300.0)
     this.velocity = vec3.fromValues(0, 0, 0)
@@ -48,12 +41,7 @@ export default class Controller {
     this.noise.connect(dist)
   }
 
-  update(
-    device: GPUDevice,
-    queue,
-    raycast: Raycast,
-    deltaTime: number
-  ): void {
+  update(deltaTime: number): void {
     const distance = this.keyboard.keydown('shift') ? 20 : 5
     vec3.zero(this.velocity)
     if (this.keyboard.keydown('w')) {
@@ -99,22 +87,6 @@ export default class Controller {
 
     if (this.keyboard.keydown('e')) {
       quat.rotateZ(this.rotation, this.rotation, glMatrix.toRadian(-1.0))
-    }
-
-    if (this.keyboard.keydown('1')) {
-      document.getElementById('tool')!.innerText = 'true'
-    }
-
-    if (this.keyboard.keydown('`')) {
-      document.getElementById('tool')!.innerText = 'false'
-    }
-
-    if (this.keyboard.keypress(' ')) {
-      raycast
-        .cast(device, queue, this.position, vec3.scale(vec3.create(), this.forward, -1))
-        .then((r) =>
-          r !== null ? console.log(r.position, r.distance) : console.log('No intersection found')
-        )
     }
 
     const gravity = vec3.fromValues(2000000.0, 100.0, 100.0)

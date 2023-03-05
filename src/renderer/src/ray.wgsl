@@ -19,7 +19,7 @@ struct Intersection {
 fn main() {
 
   let direction = normalize(uniforms.direction);
-  var i = 0.0;
+  var i = 1.0;
 
   intersection.found = 0;
 
@@ -27,7 +27,7 @@ fn main() {
     let position = uniforms.position + direction * i;
     let density = getDensity(position);
 
-    if (i > 1000) {
+    if (i > 10000) {
       return;
     }
 

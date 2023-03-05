@@ -10,13 +10,18 @@ struct Density {
   material: u32
 }
 
+struct Augmentations {
+  count: u32,
+  augmentations: array<Augmentation>
+}
+
 struct Augmentation {
   position: vec3<f32>,
   size: f32,
   attributes: u32
 }
 
-@binding(0) @group(1) var<storage, read> augmentations: array<Augmentation>;
+@binding(0) @group(1) var<storage, read> augmentations: Augmentations;
 
 fn subtract(base: Density, sub: f32) -> Density {
   return Density(max(base.density, sub), base.material);
@@ -225,14 +230,33 @@ fn calculateDensity(worldPosition: vec3<f32>) -> Density {
   //result = add(result, Sphere(worldPosition, vec3<f32>(2000000.0, 0.0, 0.0), 1000.0), MATERIAL_FIRE);
 
 
-  let count = 3u;
+  let count = augmentations.count;
 
   var i: u32 = 0u;
   loop {
-    if (i > count) { break; }
+    if (i >= count) { break; }
 
-    let augmentation = augmentations[i];
-    result = add(result, Sphere(worldPosition, vec3<f32>(augmentation.position.x, augmentation.position.y, augmentation.position.z), 500.0), MATERIAL_WOOD);
+    let augmentation = augmentations.augmentations[i];
+    let shape = (augmentation.attributes & 0xFE) >> 1;
+    var density: f32 = 0.0;
+    switch(shape) {
+      case 0: {
+        density = Sphere(worldPosition, vec3<f32>(augmentation.position.x, augmentation.position.y, augmentation.position.z), augmentation.size);
+      }
+      case 1: {
+        density = Box(worldPosition, vec3<f32>(augmentation.position.x, augmentation.position.y, augmentation.position.z), vec3<f32>(augmentation.size));
+      }
+      default: {
+        density = 0.0;
+      }
+    }
+
+    if ((augmentation.attributes & 0x1) == 0x1) {
+      let material = (augmentation.attributes & 0x1FF00) >> 8;
+      result = add(result, density, material);
+    } else {
+      result = subtract(result, -density);
+    }
 
 
     continuing {

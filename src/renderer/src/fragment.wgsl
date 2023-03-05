@@ -208,5 +208,6 @@ fn main(@location(0) vPos: vec4<f32>,
   }
   //let cell = vec3<u32>(vPos.xyz - uniforms.position / f32(uniforms.stride));
   //let foo = corners[cell.x * 32 * 32 + cell.y * 32 + cell.z];
-  return vec4<f32>(tex * color * max(0.0, hasLight(vPos.xyz + vNormal.xyz * 10.0)), 1.0);
+  return vec4<f32>(tex * color, 1.0);
+  //return vec4<f32>(tex * color * max(0.0, hasLight(vPos.xyz + vNormal.xyz * 10.0)), 1.0);
 }

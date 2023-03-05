@@ -9,13 +9,18 @@ import { QueueItem } from './queueItem'
 import Raycast from './raycast'
 import Network from './network'
 import Player from './player'
-import Density from './density'
-import WorldGenerator from './world-generator'
+import Density, { DensityMaterial, DensityShape, DensityType } from './density'
+import WorldGenerator, { WorldGeneratorInfo } from './world-generator'
 import { Camera } from './camera'
+import Pointer from './pointer'
 
 class Game {
   private lastUpdate = 0
   private lastTimestamp = 0
+  private tool = DensityType.Add
+  private shape = DensityShape.Sphere
+  private material = DensityMaterial.Rock
+  private size = 4
 
   private constructor(
     private voxelWorker: ContouringWorker,
@@ -27,7 +32,10 @@ class Game {
     private collection: VoxelCollection,
     private raycast: Raycast,
     private network: Network,
-    private players: Map<string, Player>
+    private players: Map<string, Player>,
+    private density: Density,
+    private pointer: Pointer,
+    private generate: () => void
   ) {}
 
   static async init(device: GPUDevice): Promise<Game> {
@@ -51,14 +59,7 @@ class Game {
 
     await network.sendData({ type: 'move', position: { x: 0, y: 0, z: 0 } })
 
-    //this.player = new Player(vec3.fromValues(2000000.0, 100.0, 100.0));
-    //this.player.init(device);
-
     const density = await Density.init(device)
-    density.update(device, [
-      { x: 2007000, y: 0, z: 1000 },
-      { x: 2007000, y: 0, z: 0 }
-    ])
 
     const physics = await Physics.init(
       device,
@@ -89,32 +90,14 @@ class Game {
       }
     })
 
-    const game = new Game(
-      voxelWorker,
-      keyboard,
-      mouse,
-      physics,
-      controller,
-      camera,
-      collection,
-      raycast,
-      network,
-      players
-    )
-
-    document.getElementById('loading')!.style.display = 'none'
-
-    const stride = 32
+    const stride = 2
     const chunkSize = 31
     const worldGenerator = new WorldGenerator(stride)
 
-    let info = worldGenerator.init(
-      controller.position[0] / chunkSize,
-      controller.position[1] / chunkSize,
-      controller.position[2] / chunkSize
-    )
-
     const t0 = performance.now()
+
+    let info: WorldGeneratorInfo
+    let generating = false
 
     voxelWorker.onmessage = ({ data }): void => {
       const { type, vertices, consistency, normals, indices, corners, stride } = data
@@ -140,7 +123,12 @@ class Game {
       }
 
       if (info.stride > 2 << 14) {
-        console.log(`Generation complete in ${performance.now() - t0} milliseconds with ${collection.objects.size} objects`)
+        generating = false
+        console.log(
+          `Generation complete in ${performance.now() - t0} milliseconds with ${
+            collection.objects.size
+          } objects`
+        )
         return
       }
 
@@ -160,20 +148,52 @@ class Game {
       info = r[1]
     }
 
-    const r = worldGenerator.next(info)
-    const result = r[0]
-    voxelWorker.postMessage({
-      stride: stride,
-      position: controller.position,
-      detail: {
-        x: result.x,
-        y: result.y,
-        z: result.z,
-        s: result.stride
-      },
-      density: density.augmentations
-    })
-    info = r[1]
+    const generate = (): void => {
+      info = worldGenerator.init(
+        controller.position[0] / chunkSize,
+        controller.position[1] / chunkSize,
+        controller.position[2] / chunkSize
+      )
+      console.log(generating)
+      if (generating) return
+
+      generating = true
+      const r = worldGenerator.next(info)
+      const result = r[0]
+      voxelWorker.postMessage({
+        stride: stride,
+        position: controller.position,
+        detail: {
+          x: result.x,
+          y: result.y,
+          z: result.z,
+          s: result.stride
+        },
+        density: density.augmentations
+      })
+      info = r[1]
+    }
+    generate()
+
+    const pointer = new Pointer(device, controller, camera, raycast)
+
+    const game = new Game(
+      voxelWorker,
+      keyboard,
+      mouse,
+      physics,
+      controller,
+      camera,
+      collection,
+      raycast,
+      network,
+      players,
+      density,
+      pointer,
+      generate
+    )
+
+    document.getElementById('loading')!.style.display = 'none'
 
     return game
   }
@@ -184,6 +204,31 @@ class Game {
 
   async update(device: GPUDevice, projectionMatrix: mat4, timestamp: number): Promise<void> {
     const deltaTime = timestamp - this.lastTimestamp
+
+    const queue = (item: QueueItem): void => {
+      device.queue.onSubmittedWorkDone().then(() => {
+        item.callback()
+      })
+
+      device.queue.submit(item.items)
+    }
+
+    if (this.keyboard.keydown('1')) this.tool = DensityType.Add
+    if (this.keyboard.keydown('2')) this.tool = DensityType.Subtract
+    if (this.keyboard.keydown('3')) this.shape = DensityShape.Box
+    if (this.keyboard.keydown('4')) this.shape = DensityShape.Sphere
+    if (this.keyboard.keydown('5')) this.material = DensityMaterial.Rock
+    if (this.keyboard.keydown('6')) this.material = DensityMaterial.Wood
+    if (this.keyboard.keydown('7')) this.material = DensityMaterial.Fire
+    if (this.keyboard.keypress('=')) this.size = this.size * 2
+    if (this.keyboard.keypress('-')) this.size = Math.max(4, this.size / 2)
+
+    const tool = document.getElementById('tool')
+    if (tool) {
+      tool.innerText = `${DensityType[this.tool]} - ${DensityShape[this.shape]} - ${
+        DensityMaterial[this.material]
+      } - ${this.size}`
+    }
 
     // Disable regeneration of world
     if (timestamp - this.lastUpdate > 10000) {
@@ -200,22 +245,46 @@ class Game {
       this.lastUpdate = timestamp
     }
 
-    const queue = (item: QueueItem): void => {
-      device.queue.onSubmittedWorkDone().then(() => {
-        item.callback()
-      })
+    if (this.keyboard.keypress('g')) {
+      this.generate()
+    }
 
-      device.queue.submit(item.items)
+    if (this.keyboard.keypress(' ')) {
+      const gravityDirection = vec3.create()
+      vec3.scale(gravityDirection, this.controller.up, 100)
+      vec3.add(gravityDirection, this.controller.position, gravityDirection)
+
+      this.raycast
+        .cast(device, queue, gravityDirection, vec3.scale(vec3.create(), this.camera.forward, -1))
+        .then((r) => {
+          if (r === null) {
+            console.log('No intersection found')
+            return
+          }
+          console.log(r.position, r.distance)
+          this.density.modify(device, {
+            x: r.position[0],
+            y: r.position[1],
+            z: r.position[2],
+            size: this.size,
+            type: this.tool,
+            shape: this.shape,
+            material: this.material
+          })
+          this.generate()
+        })
     }
 
     this.physics.velocity = this.controller.velocity
     await this.physics.update(device, (q: QueueItem) => queue(q))
 
     this.controller.position = this.physics.position as vec3
-    this.controller.update(device, queue, this.raycast, deltaTime)
+    this.controller.update(deltaTime)
     this.camera.update(projectionMatrix)
 
     const viewMatrix = this.camera.viewMatrix
+
+    this.pointer.update(device, queue, viewMatrix)
 
     this.collection.update(device, viewMatrix, timestamp)
 
@@ -229,6 +298,7 @@ class Game {
   }
 
   draw(passEncoder: GPURenderPassEncoder): void {
+    this.pointer.draw(passEncoder)
     for (const id in this.players) {
       this.players[id].draw(passEncoder)
     }
