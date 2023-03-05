@@ -3,7 +3,7 @@ import Player from './player'
 import { vec3 } from 'gl-matrix'
 import jwt_decode from 'jwt-decode'
 import Controller from './controller'
-import ProtoSerializer from './network/proto-serializer'
+//import ProtoSerializer from './network/proto-serializer'
 
 const apiUrl = 'wss://api.new-world.james-parker.dev'
 //const apiUrl = 'ws://localhost:3000'
@@ -14,7 +14,7 @@ interface State {
 
 export default class Network {
   private constructor(
-    private readonly serializer: ProtoSerializer,
+    //private readonly serializer: ProtoSerializer,
     private readonly clientId: string,
     private readonly socket: ReconnectingWebSocket,
     private readonly players: Map<string, Player>,
@@ -28,7 +28,7 @@ export default class Network {
   ): Promise<Network> {
     const socket = new ReconnectingWebSocket(`${apiUrl}/client`)
 
-    const serializer = await ProtoSerializer.init()
+    //const serializer = await ProtoSerializer.init()
 
     return new Promise((resolve) => {
       socket.onmessage = (e: MessageEvent): void => {
@@ -44,7 +44,13 @@ export default class Network {
             )
           }
 
-          const network = new Network(serializer, message.clientId, socket, players, createPlayer)
+          const network = new Network(
+            //serializer,
+            message.clientId,
+            socket,
+            players,
+            createPlayer
+          )
           socket.onmessage = network.processMessage.bind(network)
           resolve(network)
         }
