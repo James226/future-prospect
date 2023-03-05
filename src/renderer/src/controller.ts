@@ -89,14 +89,6 @@ export default class Controller {
       quat.rotateZ(this.rotation, this.rotation, glMatrix.toRadian(-1.0))
     }
 
-    if (this.keyboard.keydown('1')) {
-      document.getElementById('tool')!.innerText = 'true'
-    }
-
-    if (this.keyboard.keydown('`')) {
-      document.getElementById('tool')!.innerText = 'false'
-    }
-
     const gravity = vec3.fromValues(2000000.0, 100.0, 100.0)
     const gravityDirection = vec3.sub(vec3.create(), this.position, gravity)
     vec3.normalize(gravityDirection, gravityDirection)

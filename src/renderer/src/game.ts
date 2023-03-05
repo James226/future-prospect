@@ -214,10 +214,12 @@ class Game {
       device.queue.submit(item.items)
     }
 
-    if (this.keyboard.keypress('1')) this.tool = DensityType.Add
-    if (this.keyboard.keypress('2')) this.tool = DensityType.Subtract
-    if (this.keyboard.keypress('3')) this.shape = DensityShape.Box
-    if (this.keyboard.keypress('4')) this.shape = DensityShape.Sphere
+    if (this.keyboard.keydown('1')) this.tool = DensityType.Add
+    if (this.keyboard.keydown('2')) this.tool = DensityType.Subtract
+    if (this.keyboard.keydown('3')) this.shape = DensityShape.Box
+    if (this.keyboard.keydown('4')) this.shape = DensityShape.Sphere
+
+    document.getElementById('tool').innerText = `${DensityType[this.tool]} - ${DensityShape[this.shape]}`
 
     // Disable regeneration of world
     if (timestamp - this.lastUpdate > 10000) {
