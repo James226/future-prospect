@@ -184,9 +184,9 @@ fn CLerp2(a: f32, b: f32, t: f32) -> f32
 }
 
 fn calculateDensity(worldPosition: vec3<f32>) -> Density {
-	var worldRadius: f32 = 10000.0;
+	var worldRadius: f32 = 300000.0;
 	var world: vec3<f32> = worldPosition - vec3<f32>(worldRadius);
-	var worldDist: f32 = clamp(-worldRadius + length(world), -1000.0, 1000.0);
+	var worldDist: f32 = clamp(-worldRadius + length(world), -10000.0, 10000.0);
 
 	let flatlandNoiseScale: f32 = 3.0;
 	let flatlandLerpAmount: f32 = 0.07;
@@ -201,23 +201,23 @@ fn calculateDensity(worldPosition: vec3<f32>) -> Density {
 
 	let rockyBlend: f32 = 1.0;
 
-//	let mountainBlend: f32 = clamp(abs(FractalNoise2(0.5343, 2.2324, 0.68324, world)) * 4.0, 0.0, 1.0);
-//	//let mountainBlend: f32 = 0.0;
-//
-//	let mountain: f32 = CalculateNoiseValue2(world, 0.07);
-//	//let mountain: f32 = 0.0;
-//
-//	var blob: f32 = CalculateNoiseValue2(world, flatlandNoiseScale + ((rockyNoiseScale - flatlandNoiseScale) * rockyBlend));
-//	blob = CLerp2(blob, (worldDist) * (flatlandYPercent + ((rockyYPercent - flatlandYPercent) * rockyBlend)),
-//				flatlandLerpAmount + ((rockyLerpAmount - flatlandLerpAmount) * rockyBlend));
-//				//+ CLerp2(mountain, blob, minMountainMixLerpAmount + ((maxMountainMixLerpAmount - minMountainMixLerpAmount) * mountainBlend));
+	//let mountainBlend: f32 = clamp(abs(FractalNoise2(0.5343, 2.2324, 0.68324, world)) * 4.0, 0.0, 1.0);
+	let mountainBlend: f32 = 1.0;
+
+	let mountain: f32 = CalculateNoiseValue2(world, 30000.0);
+	//let mountain: f32 = 0.0;
+
+	var blob: f32 = CalculateNoiseValue2(world, flatlandNoiseScale + ((rockyNoiseScale - flatlandNoiseScale) * rockyBlend));
+	blob = CLerp2(blob, (worldDist) * (flatlandYPercent + ((rockyYPercent - flatlandYPercent) * rockyBlend)),
+				flatlandLerpAmount + ((rockyLerpAmount - flatlandLerpAmount) * rockyBlend))
+				+ CLerp2(mountain, blob, minMountainMixLerpAmount + ((maxMountainMixLerpAmount - minMountainMixLerpAmount) * mountainBlend));
 
   var result = Density(1.0, MATERIAL_AIR);
 
-	//result = add(result, blob, MATERIAL_ROCK);
+	result = add(result, blob, MATERIAL_WOOD);
 
   result = add(result, Box(worldPosition, vec3<f32>(2000000.0, 150.0, 5000.0), vec3<f32>(5000.0, 1000.0, 5000.0)), MATERIAL_ROCK);
-  result = add(result, Sphere(worldPosition, vec3<f32>(2000000.0, 100.0, 100.0), 5000.0), MATERIAL_ROCK);
+  result = add(result, Sphere(worldPosition, vec3<f32>(3000000.0, 100.0, 100.0), 1000000.0 + 5000.0), MATERIAL_ROCK);
 
   //result = add(result, Sphere(worldPosition, vec3<f32>(2000000.0 - 1000000.0, 0.0, 0.0), 1000000.0), MATERIAL_ROCK);
 
