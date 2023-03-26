@@ -7,7 +7,9 @@ export enum DensityType {
 
 export enum DensityShape {
   Sphere,
-  Box
+  Box,
+  Table,
+  Chair
 }
 
 export enum DensityMaterial {

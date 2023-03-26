@@ -183,6 +183,23 @@ fn CLerp2(a: f32, b: f32, t: f32) -> f32
 	return (1.0 - t) * a + t * b;
 }
 
+fn AngleAxis3x3(angle: f32, axis: vec3<f32>) -> mat3x3<f32>
+{
+    let s = sin(angle);
+    let c = cos(angle);
+
+    let t = 1 - c;
+    let x = axis.x;
+    let y = axis.y;
+    let z = axis.z;
+
+    return mat3x3<f32>(
+        t * x * x + c,      t * x * y - s * z,  t * x * z + s * y,
+        t * x * y + s * z,  t * y * y + c,      t * y * z - s * x,
+        t * x * z - s * y,  t * y * z + s * x,  t * z * z + c
+    );
+}
+
 fn calculateDensity(worldPosition: vec3<f32>) -> Density {
 	var worldRadius: f32 = 5000.0;
 	var world: vec3<f32> = worldPosition - vec3<f32>(2000000.0, 100.0, 100.0);
@@ -245,6 +262,23 @@ fn calculateDensity(worldPosition: vec3<f32>) -> Density {
       }
       case 1: {
         density = Box(worldPosition, vec3<f32>(augmentation.position.x, augmentation.position.y, augmentation.position.z), vec3<f32>(augmentation.size));
+      }
+      case 2: {
+        density = Box(worldPosition, vec3<f32>(augmentation.position.x - 50.0, augmentation.position.y, augmentation.position.z), vec3<f32>(5.0, augmentation.size, augmentation.size));
+        density = min(density, Box(worldPosition, vec3<f32>(augmentation.position.x, augmentation.position.y - augmentation.size / 2, augmentation.position.z - augmentation.size / 2), vec3<f32>(50.0, 5.0, 5.0)));
+        density = min(density, Box(worldPosition, vec3<f32>(augmentation.position.x, augmentation.position.y + augmentation.size / 2, augmentation.position.z - augmentation.size / 2), vec3<f32>(50.0, 5.0, 5.0)));
+        density = min(density, Box(worldPosition, vec3<f32>(augmentation.position.x, augmentation.position.y - augmentation.size / 2, augmentation.position.z + augmentation.size / 2), vec3<f32>(50.0, 5.0, 5.0)));
+        density = min(density, Box(worldPosition, vec3<f32>(augmentation.position.x, augmentation.position.y + augmentation.size / 2, augmentation.position.z + augmentation.size / 2), vec3<f32>(50.0, 5.0, 5.0)));
+      }
+      case 3: {
+        let rotation = AngleAxis3x3(3.1415 / 2.0, normalize(-world));
+        let newWorldPos = ((worldPosition - augmentation.position) * rotation) + augmentation.position;
+        density = Box(newWorldPos, vec3<f32>(augmentation.position.x - 25.0, augmentation.position.y, augmentation.position.z), vec3<f32>(5.0, augmentation.size, augmentation.size));
+        density = min(density, Box(newWorldPos, vec3<f32>(augmentation.position.x - 50.0, augmentation.position.y - augmentation.size, augmentation.position.z), vec3<f32>(25.0, 5.0, augmentation.size)));
+        density = min(density, Box(newWorldPos, vec3<f32>(augmentation.position.x, augmentation.position.y - augmentation.size / 2, augmentation.position.z - augmentation.size / 2), vec3<f32>(25.0, 5.0, 5.0)));
+        density = min(density, Box(newWorldPos, vec3<f32>(augmentation.position.x, augmentation.position.y + augmentation.size / 2, augmentation.position.z - augmentation.size / 2), vec3<f32>(25.0, 5.0, 5.0)));
+        density = min(density, Box(newWorldPos, vec3<f32>(augmentation.position.x, augmentation.position.y - augmentation.size / 2, augmentation.position.z + augmentation.size / 2), vec3<f32>(25.0, 5.0, 5.0)));
+        density = min(density, Box(newWorldPos, vec3<f32>(augmentation.position.x, augmentation.position.y + augmentation.size / 2, augmentation.position.z + augmentation.size / 2), vec3<f32>(25.0, 5.0, 5.0)));
       }
       default: {
         density = 0.0;

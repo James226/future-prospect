@@ -215,8 +215,8 @@ class Game {
 
     if (this.keyboard.keydown('1')) this.tool = DensityType.Add
     if (this.keyboard.keydown('2')) this.tool = DensityType.Subtract
-    if (this.keyboard.keydown('3')) this.shape = DensityShape.Box
-    if (this.keyboard.keydown('4')) this.shape = DensityShape.Sphere
+    if (this.keyboard.keypress('3')) this.shape = Math.max(0, this.shape - 1)
+    if (this.keyboard.keypress('4')) this.shape = Math.min(DensityShape.Chair, this.shape + 1)
     if (this.keyboard.keydown('5')) this.material = DensityMaterial.Rock
     if (this.keyboard.keydown('6')) this.material = DensityMaterial.Wood
     if (this.keyboard.keydown('7')) this.material = DensityMaterial.Fire
