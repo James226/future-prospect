@@ -183,6 +183,26 @@ fn CLerp2(a: f32, b: f32, t: f32) -> f32
 	return (1.0 - t) * a + t * b;
 }
 
+fn rotateAlign(v1: vec3<f32>, v2: vec3<f32>) -> mat3x3<f32>
+{
+    let axis = cross( v1, v2 );
+
+    let cosA = dot( v1, v2 );
+    let k = 1.0 / (1.0 + cosA);
+
+    return mat3x3<f32>( (axis.x * axis.x * k) + cosA,
+                 (axis.y * axis.x * k) - axis.z,
+                 (axis.z * axis.x * k) + axis.y,
+                 (axis.x * axis.y * k) + axis.z,
+                 (axis.y * axis.y * k) + cosA,
+                 (axis.z * axis.y * k) - axis.x,
+                 (axis.x * axis.z * k) - axis.y,
+                 (axis.y * axis.z * k) + axis.x,
+                 (axis.z * axis.z * k) + cosA
+                 );
+}
+
+
 fn AngleAxis3x3(angle: f32, axis: vec3<f32>) -> mat3x3<f32>
 {
     let s = sin(angle);
@@ -200,10 +220,19 @@ fn AngleAxis3x3(angle: f32, axis: vec3<f32>) -> mat3x3<f32>
     );
 }
 
+fn blockSize(blockType: u32) -> f32 {
+  if (blockType == 2 || blockType == 3) {
+    return 0.5;
+  }
+  return 1.0;
+}
+
 fn calculateDensity(worldPosition: vec3<f32>) -> Density {
 	var worldRadius: f32 = 5000.0;
 	var world: vec3<f32> = worldPosition - vec3<f32>(2000000.0, 100.0, 100.0);
 	var worldDist: f32 = -worldRadius + length(world);
+	let up = vec3<f32>(0.0, 1.0, 0.0);
+
 
 	let flatlandNoiseScale: f32 = 1.0;
 	let flatlandLerpAmount: f32 = 0.07;
@@ -254,34 +283,43 @@ fn calculateDensity(worldPosition: vec3<f32>) -> Density {
     if (i >= count) { break; }
 
     let augmentation = augmentations.augmentations[i];
+
+    let minBounds = augmentation.position - augmentation.size * 2;
+    let maxBounds = augmentation.position + augmentation.size * 2;
+    if (minBounds.x > worldPosition.x || minBounds.y > worldPosition.y || minBounds.z > worldPosition.z
+      || maxBounds.x < worldPosition.x || maxBounds.y < worldPosition.y || maxBounds.z < worldPosition.z) { continue; }
+
     let shape = (augmentation.attributes & 0xFE) >> 1;
     var density: f32 = 0.0;
+
+    let down = normalize(augmentation.position - vec3<f32>(2000000.0, 100.0, 100.0));
+    let rotation = rotateAlign(down, up);
+    let position = ((worldPosition - augmentation.position) * rotation - vec3<f32>(0.0, augmentation.size * blockSize(shape), 0.0)) + augmentation.position;
+
     switch(shape) {
       case 0: {
-        density = Sphere(worldPosition, vec3<f32>(augmentation.position.x, augmentation.position.y, augmentation.position.z), augmentation.size);
+        density = Sphere(position, vec3<f32>(augmentation.position.x, augmentation.position.y, augmentation.position.z), augmentation.size);
       }
       case 1: {
-        density = Box(worldPosition, vec3<f32>(augmentation.position.x, augmentation.position.y, augmentation.position.z), vec3<f32>(augmentation.size));
+        density = Box(position, vec3<f32>(augmentation.position.x, augmentation.position.y, augmentation.position.z), vec3<f32>(augmentation.size));
       }
       case 2: {
-        density = Box(worldPosition, vec3<f32>(augmentation.position.x - 50.0, augmentation.position.y, augmentation.position.z), vec3<f32>(5.0, augmentation.size, augmentation.size));
-        density = min(density, Box(worldPosition, vec3<f32>(augmentation.position.x, augmentation.position.y - augmentation.size / 2, augmentation.position.z - augmentation.size / 2), vec3<f32>(50.0, 5.0, 5.0)));
-        density = min(density, Box(worldPosition, vec3<f32>(augmentation.position.x, augmentation.position.y + augmentation.size / 2, augmentation.position.z - augmentation.size / 2), vec3<f32>(50.0, 5.0, 5.0)));
-        density = min(density, Box(worldPosition, vec3<f32>(augmentation.position.x, augmentation.position.y - augmentation.size / 2, augmentation.position.z + augmentation.size / 2), vec3<f32>(50.0, 5.0, 5.0)));
-        density = min(density, Box(worldPosition, vec3<f32>(augmentation.position.x, augmentation.position.y + augmentation.size / 2, augmentation.position.z + augmentation.size / 2), vec3<f32>(50.0, 5.0, 5.0)));
+        density = Box(position, vec3<f32>(augmentation.position.x, augmentation.position.y + augmentation.size / 2, augmentation.position.z), vec3<f32>(augmentation.size, 5.0, augmentation.size));
+        density = min(density, Box(position, vec3<f32>(augmentation.position.x - augmentation.size / 2, augmentation.position.y, augmentation.position.z - augmentation.size / 2), vec3<f32>(5.0, augmentation.size / 2, 5.0)));
+        density = min(density, Box(position, vec3<f32>(augmentation.position.x + augmentation.size / 2, augmentation.position.y, augmentation.position.z - augmentation.size / 2), vec3<f32>(5.0, augmentation.size / 2, 5.0)));
+        density = min(density, Box(position, vec3<f32>(augmentation.position.x - augmentation.size / 2, augmentation.position.y, augmentation.position.z + augmentation.size / 2), vec3<f32>(5.0, augmentation.size / 2, 5.0)));
+        density = min(density, Box(position, vec3<f32>(augmentation.position.x + augmentation.size / 2, augmentation.position.y, augmentation.position.z + augmentation.size / 2), vec3<f32>(5.0, augmentation.size / 2, 5.0)));
       }
       case 3: {
-        let rotation = AngleAxis3x3(3.1415 / 2.0, normalize(-world));
-        let newWorldPos = ((worldPosition - augmentation.position) * rotation) + augmentation.position;
-        density = Box(newWorldPos, vec3<f32>(augmentation.position.x - 25.0, augmentation.position.y, augmentation.position.z), vec3<f32>(5.0, augmentation.size, augmentation.size));
-        density = min(density, Box(newWorldPos, vec3<f32>(augmentation.position.x - 50.0, augmentation.position.y - augmentation.size, augmentation.position.z), vec3<f32>(25.0, 5.0, augmentation.size)));
-        density = min(density, Box(newWorldPos, vec3<f32>(augmentation.position.x, augmentation.position.y - augmentation.size / 2, augmentation.position.z - augmentation.size / 2), vec3<f32>(25.0, 5.0, 5.0)));
-        density = min(density, Box(newWorldPos, vec3<f32>(augmentation.position.x, augmentation.position.y + augmentation.size / 2, augmentation.position.z - augmentation.size / 2), vec3<f32>(25.0, 5.0, 5.0)));
-        density = min(density, Box(newWorldPos, vec3<f32>(augmentation.position.x, augmentation.position.y - augmentation.size / 2, augmentation.position.z + augmentation.size / 2), vec3<f32>(25.0, 5.0, 5.0)));
-        density = min(density, Box(newWorldPos, vec3<f32>(augmentation.position.x, augmentation.position.y + augmentation.size / 2, augmentation.position.z + augmentation.size / 2), vec3<f32>(25.0, 5.0, 5.0)));
+        density = Box(position, vec3<f32>(augmentation.position.x, augmentation.position.y + augmentation.size / 2, augmentation.position.z), vec3<f32>(augmentation.size, 5.0, augmentation.size));
+        density = min(density, Box(position, vec3<f32>(augmentation.position.x - augmentation.size, augmentation.position.y + augmentation.size, augmentation.position.z), vec3<f32>(5.0, augmentation.size / 2, augmentation.size)));
+        density = min(density, Box(position, vec3<f32>(augmentation.position.x - augmentation.size / 2, augmentation.position.y, augmentation.position.z - augmentation.size / 2), vec3<f32>(5.0, augmentation.size / 2, 5.0)));
+        density = min(density, Box(position, vec3<f32>(augmentation.position.x + augmentation.size / 2, augmentation.position.y, augmentation.position.z - augmentation.size / 2), vec3<f32>(5.0, augmentation.size / 2, 5.0)));
+        density = min(density, Box(position, vec3<f32>(augmentation.position.x - augmentation.size / 2, augmentation.position.y, augmentation.position.z + augmentation.size / 2), vec3<f32>(5.0, augmentation.size / 2, 5.0)));
+        density = min(density, Box(position, vec3<f32>(augmentation.position.x + augmentation.size / 2, augmentation.position.y, augmentation.position.z + augmentation.size / 2), vec3<f32>(5.0, augmentation.size / 2, 5.0)));
       }
       default: {
-        density = 0.0;
+        continue;
       }
     }
 

@@ -94,7 +94,7 @@ class Game {
     const chunkSize = 31
     const worldGenerator = new WorldGenerator(stride)
 
-    const t0 = performance.now()
+    let t0 = performance.now()
 
     let info: WorldGeneratorInfo
     let generating = false
@@ -149,6 +149,7 @@ class Game {
     }
 
     const generate = (): void => {
+      t0 = performance.now()
       info = worldGenerator.init(
         controller.position[0] / chunkSize,
         controller.position[1] / chunkSize,
