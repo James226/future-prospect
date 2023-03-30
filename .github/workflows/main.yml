@@ -10,6 +10,7 @@ jobs:
   build:
 
     runs-on: ${{ matrix.os }}
+    container: electronuserland/builder:wine
 
     strategy:
       matrix:
@@ -23,3 +24,5 @@ jobs:
           cache: 'npm'
       - run: npm ci
       - run: npm run build:all
+        env:
+          USE_HARD_LINKS: false
