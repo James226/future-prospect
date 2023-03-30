@@ -33,7 +33,6 @@ class Game {
     private raycast: Raycast,
     private network: Network,
     private players: Map<string, Player>,
-    private density: Density,
     private pointer: Pointer,
     private generate: () => void
   ) {}
@@ -50,16 +49,22 @@ class Game {
 
     const camera = new Camera(controller, mouse)
 
+    const density = await Density.init(device)
+
     const players = new Map<string, Player>()
-    const network = await Network.init(controller, players, (id) => {
-      const player = new Player(device, vec3.fromValues(2000000.0, 100.0, 100.0))
-      players[id] = player
-      return player
-    })
+    const network = await Network.init(
+      controller,
+      players,
+      (id) => {
+        const player = new Player(device, vec3.fromValues(2000000.0, 100.0, 100.0))
+        players[id] = player
+        return player
+      },
+      density,
+      device
+    )
 
     await network.sendData({ type: 'move', position: { x: 0, y: 0, z: 0 } })
-
-    const density = await Density.init(device)
 
     const physics = await Physics.init(
       device,
@@ -189,7 +194,6 @@ class Game {
       raycast,
       network,
       players,
-      density,
       pointer,
       generate
     )
@@ -263,14 +267,28 @@ class Game {
             return
           }
           console.log(r.position, r.distance)
-          this.density.modify(device, {
-            x: r.position[0],
-            y: r.position[1],
-            z: r.position[2],
-            size: this.size,
-            type: this.tool,
-            shape: this.shape,
-            material: this.material
+          // this.density.modify(device, {
+          //   x: r.position[0],
+          //   y: r.position[1],
+          //   z: r.position[2],
+          //   size: this.size,
+          //   type: this.tool,
+          //   shape: this.shape,
+          //   material: this.material
+          // })
+          this.network.sendData({
+            type: 'build',
+            data: JSON.stringify({
+              position: {
+                x: r.position[0],
+                y: r.position[1],
+                z: r.position[2]
+              },
+              shape: this.shape,
+              material: this.material,
+              tool: this.tool,
+              size: this.size
+            })
           })
           this.generate()
         })

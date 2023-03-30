@@ -3,10 +3,11 @@ import Player from './player'
 import { vec3 } from 'gl-matrix'
 import jwt_decode from 'jwt-decode'
 import Controller from './controller'
+import Density from './density'
 //import ProtoSerializer from './network/proto-serializer'
 
 const apiUrl = 'wss://api.new-world.james-parker.dev'
-//const apiUrl = 'ws://localhost:3000'
+// const apiUrl = 'ws://localhost:3000'
 
 interface State {
   position: { x: number; y: number; z: number }
@@ -18,13 +19,17 @@ export default class Network {
     private readonly clientId: string,
     private readonly socket: ReconnectingWebSocket,
     private readonly players: Map<string, Player>,
-    private readonly createPlayer: (string) => Player
+    private readonly createPlayer: (string) => Player,
+    private readonly density: Density,
+    private readonly device: GPUDevice
   ) {}
 
   static async init(
     controller: Controller,
     players: Map<string, Player>,
-    createPlayer: (string) => Player
+    createPlayer: (string) => Player,
+    density: Density,
+    device: GPUDevice
   ): Promise<Network> {
     const socket = new ReconnectingWebSocket(`${apiUrl}/client`)
 
@@ -49,7 +54,9 @@ export default class Network {
             message.clientId,
             socket,
             players,
-            createPlayer
+            createPlayer,
+            density,
+            device
           )
           socket.onmessage = network.processMessage.bind(network)
           resolve(network)
@@ -89,6 +96,18 @@ export default class Network {
         }
         vec3.set(player.position, message.position.x, message.position.y, message.position.z)
         break
+      }
+      case 'build': {
+        const data = JSON.parse(message.data)
+        this.density.modify(this.device, {
+          x: data.position.x,
+          y: data.position.y,
+          z: data.position.z,
+          size: data.size,
+          type: data.tool,
+          shape: data.shape,
+          material: data.material
+        })
       }
     }
   }

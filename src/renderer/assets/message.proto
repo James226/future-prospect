@@ -1,4 +1,3 @@
-// awesome.proto
 syntax = "proto3";
 import "google/protobuf/any.proto";
 

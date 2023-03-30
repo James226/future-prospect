@@ -15,7 +15,7 @@ import { mat4 } from 'gl-matrix'
 
   if (steamworks) {
     try {
-      const client = steamworks.init(480)
+      const client = steamworks.init(2377570)
 
       console.log(client.localplayer.getName())
       client.localplayer.getSteamId()
