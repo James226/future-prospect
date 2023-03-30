@@ -1,5 +1,3 @@
-/// <reference types="vite/types/importMeta" />
-
 import Stats from 'stats.js'
 import Renderer from './renderer'
 import Game from './game'
