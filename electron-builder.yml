@@ -13,14 +13,14 @@ asarUnpack:
 afterSign: build/notarize.js
 win:
   executableName: future-prospect
-  target: dir
+  target: zip
 nsis:
   artifactName: ${name}-${version}-setup.${ext}
   shortcutName: ${productName}
   uninstallDisplayName: ${productName}
   createDesktopShortcut: always
 mac:
-  target: dir
+  target: zip
   entitlementsInherit: build/entitlements.mac.plist
   extendInfo:
     - NSCameraUsageDescription: Application requests access to the device's camera.
@@ -28,8 +28,7 @@ mac:
     - NSDocumentsFolderUsageDescription: Application requests access to the user's Documents folder.
     - NSDownloadsFolderUsageDescription: Application requests access to the user's Downloads folder.
 linux:
-  target:
-    - dir
+  target: zip
   maintainer: electronjs.org
   category: Utility
 appImage:
