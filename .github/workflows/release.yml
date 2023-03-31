@@ -1,10 +1,9 @@
-name: Build
+name: Release
 
 on:
-  push:
-    branches: [ main ]
-  pull_request:
-    branches: [ main ]
+  release:
+    types:
+      - created
 
 jobs:
   build:
@@ -23,6 +22,11 @@ jobs:
           node-version: 16.x
           cache: 'npm'
       - run: npm ci
-      - run: npm run build
+      - run: npm run build:all
         env:
           USE_HARD_LINKS: false
+      - name: Upload macos binaries to release
+        uses: svenstaro/upload-release-action@v2
+        with:
+          repo_token: ${{ secrets.GITHUB_TOKEN }}
+          file: dist/mac/future-prospect.app
