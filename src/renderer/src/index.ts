@@ -22,6 +22,8 @@ import { mat4 } from 'gl-matrix'
         console.log('Sad fish')
       }
 
+      console.log('Steam ID', client.localplayer.getSteamId())
+
       // client.workshop.createItem()
       //   .then(async item => {
       //     const update: UgcUpdate = {};

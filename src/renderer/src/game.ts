@@ -30,7 +30,6 @@ class Game {
     private controller: Controller,
     private camera: Camera,
     private collection: VoxelCollection,
-    private raycast: Raycast,
     private network: Network,
     private players: Map<string, Player>,
     private pointer: Pointer,
@@ -180,6 +179,7 @@ class Game {
       info = r[1]
     }
     generate()
+    density.onModified = generate
 
     const pointer = new Pointer(device, controller, camera, raycast)
 
@@ -191,7 +191,6 @@ class Game {
       controller,
       camera,
       collection,
-      raycast,
       network,
       players,
       pointer,
@@ -225,6 +224,7 @@ class Game {
     if (this.keyboard.keydown('5')) this.material = DensityMaterial.Rock
     if (this.keyboard.keydown('6')) this.material = DensityMaterial.Wood
     if (this.keyboard.keydown('7')) this.material = DensityMaterial.Fire
+    if (this.keyboard.keypress('t')) this.pointer.snapToGrid = !this.pointer.snapToGrid
     if (this.keyboard.keypress('=')) this.size = this.size * 2
     if (this.keyboard.keypress('-')) this.size = Math.max(4, this.size / 2)
 
@@ -232,7 +232,7 @@ class Game {
     if (tool) {
       tool.innerText = `${DensityType[this.tool]} - ${DensityShape[this.shape]} - ${
         DensityMaterial[this.material]
-      } - ${this.size}`
+      } - ${this.size} - ${this.pointer.snapToGrid}`
     }
 
     // Disable regeneration of world
@@ -259,39 +259,20 @@ class Game {
       vec3.scale(gravityDirection, this.controller.up, 100)
       vec3.add(gravityDirection, this.controller.position, gravityDirection)
 
-      this.raycast
-        .cast(device, queue, gravityDirection, vec3.scale(vec3.create(), this.camera.forward, -1))
-        .then((r) => {
-          if (r === null) {
-            console.log('No intersection found')
-            return
-          }
-          console.log(r.position, r.distance)
-          // this.density.modify(device, {
-          //   x: r.position[0],
-          //   y: r.position[1],
-          //   z: r.position[2],
-          //   size: this.size,
-          //   type: this.tool,
-          //   shape: this.shape,
-          //   material: this.material
-          // })
-          this.network.sendData({
-            type: 'build',
-            data: JSON.stringify({
-              position: {
-                x: r.position[0],
-                y: r.position[1],
-                z: r.position[2]
-              },
-              shape: this.shape,
-              material: this.material,
-              tool: this.tool,
-              size: this.size
-            })
-          })
-          this.generate()
+      this.network.sendData({
+        type: 'build',
+        data: JSON.stringify({
+          position: {
+            x: this.pointer.position[0],
+            y: this.pointer.position[1],
+            z: this.pointer.position[2]
+          },
+          shape: this.shape,
+          material: this.material,
+          tool: this.tool,
+          size: this.size
         })
+      })
     }
 
     this.physics.velocity = this.controller.velocity

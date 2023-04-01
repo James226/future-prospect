@@ -19,6 +19,7 @@ export default class Pointer {
   private uniformBindGroup: GPUBindGroup
   private pipeline: GPURenderPipeline
   private updating: boolean
+  public snapToGrid = true
 
   constructor(
     device: GPUDevice,
@@ -138,6 +139,12 @@ export default class Pointer {
             return
           }
           vec3.copy(this.position, r.position)
+          if (this.snapToGrid) {
+            const toolSize = 32
+            this.position[0] = Math.round(this.position[0] / toolSize) * toolSize
+            this.position[1] = Math.round(this.position[1] / toolSize) * toolSize
+            this.position[2] = Math.round(this.position[2] / toolSize) * toolSize
+          }
           //this.position = vec3.add(r.position, gravityDirection, r.position)
         })
     }

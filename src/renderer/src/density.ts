@@ -45,6 +45,7 @@ export default class Density {
   private readonly augmentationBuffer: GPUBuffer
   public augmentationArray: DensityModel[] = []
   public augmentations: ArrayBuffer
+  public onModified: () => void = () => {}
 
   private constructor(augmentationBuffer: GPUBuffer) {
     this.augmentationBuffer = augmentationBuffer
@@ -81,6 +82,7 @@ export default class Density {
   modify(device: GPUDevice, augmentation: DensityModel): void {
     this.augmentationArray.push(augmentation)
     this.update(device, this.augmentationArray)
+    this.onModified()
   }
 
   update(device: GPUDevice, densityArray: DensityModel[]): void {
