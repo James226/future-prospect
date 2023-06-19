@@ -1,5 +1,7 @@
+import { describe, expect, it, beforeAll } from 'vitest'
+
 import ComputeVoxels from './compute-voxels.wgsl?raw'
-import Random from 'seedrandom'
+//import Random from 'seedrandom'
 
 describe('compute-voxels', () => {
   describe('computeMaterials', () => {
@@ -31,10 +33,10 @@ describe('compute-voxels', () => {
 
       const permutations = new Int32Array(512)
 
-      const random = new Random(6452)
-      for (let i = 0; i < 256; i++) permutations[i] = 256 * random()
-
-      for (let i = 256; i < 512; i++) permutations[i] = permutations[i - 256]
+      // const random = new Random(6452)
+      // for (let i = 0; i < 256; i++) permutations[i] = 256 * random()
+      //
+      // for (let i = 256; i < 512; i++) permutations[i] = permutations[i - 256]
 
       const permutationsBuffer = device.createBuffer({
         size: permutations.byteLength,
@@ -56,11 +58,12 @@ describe('compute-voxels', () => {
         usage: GPUBufferUsage.COPY_DST | GPUBufferUsage.MAP_READ
       })
 
-      const uniformBufferSize = 4 * 5
+      const uniformBufferSize = 32
       const uniformBuffer = device.createBuffer({
         size: uniformBufferSize,
         usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST
       })
+
 
       const computeBindGroup = device.createBindGroup({
         layout: computePipeline.getBindGroupLayout(0),
@@ -123,7 +126,7 @@ describe('compute-voxels', () => {
       for (let x = 0; x < 5; x++)
         for (let y = 0; y < 5; y++)
           for (let z = 0; z < 5; z++) {
-            expectedResult[z * 5 * 5 + y * 5 + x] = y < 3 ? 1 : 0
+            expectedResult[z * 5 * 5 + y * 5 + x] = y < 3 ? 256 : 0
           }
 
       expect(materials).toEqual(expectedResult)

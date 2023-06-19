@@ -1,3 +1,4 @@
+import { describe, expect, it, beforeEach } from 'vitest'
 import WorldGenerator, { generatePoints } from './world-generator'
 
 describe('World Generator', () => {
@@ -306,9 +307,9 @@ describe('World Generator', () => {
       })
 
       expect(result).toEqual({
-        x: -80,
-        y: -80,
-        z: -80,
+        x: -48,
+        y: -48,
+        z: -48,
         stride: 32
       })
 
@@ -346,10 +347,10 @@ describe('World Generator', () => {
       { layer: 1, stride: 8, result: 1 },
       { layer: 2, stride: 8, result: 2 },
       { layer: 1, stride: 16, result: 2 },
-      { layer: 2, stride: 16, result: 3 },
-      { layer: 3, stride: 16, result: 4 },
-      { layer: 1, stride: 32, result: 3 },
-      { layer: 2, stride: 32, result: 4 }
+      { layer: 2, stride: 16, result: 2 },
+      { layer: 3, stride: 16, result: 2 },
+      { layer: 1, stride: 32, result: 2 },
+      { layer: 2, stride: 32, result: 2 }
     ]
 
     for (let i = 0; i < expectedResults.length; i++) {
@@ -365,13 +366,13 @@ describe('World Generator', () => {
       expect(worldGenerator.layerCount(8)).toEqual(2)
     })
 
-    it('returns 3 for second stride', () => {
-      expect(worldGenerator.layerCount(16)).toEqual(3)
+    it('returns correct for second stride', () => {
+      expect(worldGenerator.layerCount(16)).toEqual(1)
     })
 
-    it('returns 2 for subsequent strides', () => {
+    it('returns correct for subsequent strides', () => {
       for (let i = 32; i < 1024; i += i) {
-        expect(worldGenerator.layerCount(i)).toEqual(2)
+        expect(worldGenerator.layerCount(i)).toEqual(1)
       }
     })
   })

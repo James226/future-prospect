@@ -1,10 +1,12 @@
+import { describe, expect, it, beforeEach } from 'vitest'
+
 import Renderer from './renderer'
 
 describe('Renderer', () => {
   let canvas
 
   beforeEach(() => {
-    canvas = document.getElementById('canvas')
+    canvas = document.createElement('canvas')
   })
 
   it('should not throw when initialized', async () => {
