@@ -20,7 +20,6 @@ class Game {
   private tool = DensityType.Add
   private shape = DensityShape.Sphere
   private material = DensityMaterial.Rock
-  private size = 4
 
   private constructor(
     private voxelWorker: ContouringWorker,
@@ -217,22 +216,23 @@ class Game {
       device.queue.submit(item.items)
     }
 
+    const maxShape = DensityShape[Object.keys(DensityShape).sort((k) => -DensityShape[k])[0]]
     if (this.keyboard.keydown('1')) this.tool = DensityType.Add
     if (this.keyboard.keydown('2')) this.tool = DensityType.Subtract
     if (this.keyboard.keypress('3')) this.shape = Math.max(0, this.shape - 1)
-    if (this.keyboard.keypress('4')) this.shape = Math.min(DensityShape.Chair, this.shape + 1)
+    if (this.keyboard.keypress('4')) this.shape = Math.min(maxShape, this.shape + 1)
     if (this.keyboard.keydown('5')) this.material = DensityMaterial.Rock
     if (this.keyboard.keydown('6')) this.material = DensityMaterial.Wood
     if (this.keyboard.keydown('7')) this.material = DensityMaterial.Fire
     if (this.keyboard.keypress('t')) this.pointer.snapToGrid = !this.pointer.snapToGrid
-    if (this.keyboard.keypress('=')) this.size = this.size * 2
-    if (this.keyboard.keypress('-')) this.size = Math.max(4, this.size / 2)
+    if (this.keyboard.keypress('=')) this.pointer.size = this.pointer.size * 2
+    if (this.keyboard.keypress('-')) this.pointer.size = Math.max(4, this.pointer.size / 2)
 
     const tool = document.getElementById('tool')
     if (tool) {
       tool.innerText = `${DensityType[this.tool]} - ${DensityShape[this.shape]} - ${
         DensityMaterial[this.material]
-      } - ${this.size} - ${this.pointer.snapToGrid}`
+      } - ${this.pointer.size} - ${this.pointer.snapToGrid}`
     }
 
     // Disable regeneration of world
@@ -270,7 +270,7 @@ class Game {
           shape: this.shape,
           material: this.material,
           tool: this.tool,
-          size: this.size
+          size: this.pointer.size
         })
       })
     }

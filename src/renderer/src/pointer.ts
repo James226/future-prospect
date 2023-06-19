@@ -14,11 +14,12 @@ import Raycast from './raycast'
 
 export default class Pointer {
   public position: vec3
-  private vertexBuffer: GPUBuffer
-  private uniformBuffer: GPUBuffer
-  private uniformBindGroup: GPUBindGroup
-  private pipeline: GPURenderPipeline
+  private readonly vertexBuffer: GPUBuffer
+  private readonly uniformBuffer: GPUBuffer
+  private readonly uniformBindGroup: GPUBindGroup
+  private readonly pipeline: GPURenderPipeline
   private updating: boolean
+  public size = 4
   public snapToGrid = true
 
   constructor(
@@ -140,10 +141,10 @@ export default class Pointer {
           }
           vec3.copy(this.position, r.position)
           if (this.snapToGrid) {
-            const toolSize = 32
-            this.position[0] = Math.round(this.position[0] / toolSize) * toolSize
-            this.position[1] = Math.round(this.position[1] / toolSize) * toolSize
-            this.position[2] = Math.round(this.position[2] / toolSize) * toolSize
+            const augmentationSize = this.size * 2
+            this.position[0] = Math.round(this.position[0] / augmentationSize) * augmentationSize
+            this.position[1] = Math.round(this.position[1] / augmentationSize) * augmentationSize
+            this.position[2] = Math.round(this.position[2] / augmentationSize) * augmentationSize
           }
           //this.position = vec3.add(r.position, gravityDirection, r.position)
         })

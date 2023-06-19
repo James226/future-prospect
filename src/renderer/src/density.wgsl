@@ -318,6 +318,9 @@ fn calculateDensity(worldPosition: vec3<f32>) -> Density {
         density = min(density, Box(position, vec3<f32>(augmentation.position.x - augmentation.size / 2, augmentation.position.y, augmentation.position.z + augmentation.size / 2), vec3<f32>(5.0, augmentation.size / 2, 5.0)));
         density = min(density, Box(position, vec3<f32>(augmentation.position.x + augmentation.size / 2, augmentation.position.y, augmentation.position.z + augmentation.size / 2), vec3<f32>(5.0, augmentation.size / 2, 5.0)));
       }
+      case 4: {
+        density = Box(position, vec3<f32>(augmentation.position.x, augmentation.position.y - augmentation.size + 16, augmentation.position.z), vec3<f32>(augmentation.size, 16, augmentation.size));
+      }
       default: {
         continue;
       }
