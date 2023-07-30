@@ -13,6 +13,7 @@ import Density, { DensityMaterial, DensityShape, DensityType } from './density'
 import WorldGenerator, { WorldGeneratorInfo } from './world-generator'
 import { Camera } from './camera'
 import Pointer from './pointer'
+import TouchController from './touch-controller'
 
 class Game {
   private lastUpdate = 0
@@ -27,6 +28,7 @@ class Game {
     private mouse: Mouse,
     private physics: Physics,
     private controller: Controller,
+    private touchController: TouchController,
     private camera: Camera,
     private collection: VoxelCollection,
     private network: Network,
@@ -42,10 +44,13 @@ class Game {
     const mouse = new Mouse()
     mouse.init()
 
-    const controller = new Controller(keyboard, mouse)
+    const touchController = new TouchController()
+    touchController.init()
+
+    const controller = new Controller(keyboard, mouse, touchController)
     controller.init()
 
-    const camera = new Camera(controller, mouse)
+    const camera = new Camera(controller, mouse, touchController)
 
     const density = await Density.init(device)
 
@@ -188,6 +193,7 @@ class Game {
       mouse,
       physics,
       controller,
+      touchController,
       camera,
       collection,
       network,
@@ -254,7 +260,7 @@ class Game {
       this.generate()
     }
 
-    if (this.keyboard.keypress(' ')) {
+    if (this.keyboard.keypress(' ') || this.touchController.primaryTrigger) {
       const gravityDirection = vec3.create()
       vec3.scale(gravityDirection, this.controller.up, 100)
       vec3.add(gravityDirection, this.controller.position, gravityDirection)
@@ -294,6 +300,7 @@ class Game {
 
     this.keyboard.update()
     this.mouse.update()
+    this.touchController.update()
     this.lastTimestamp = timestamp
   }
 

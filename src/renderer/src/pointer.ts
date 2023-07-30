@@ -19,7 +19,7 @@ export default class Pointer {
   private readonly uniformBindGroup: GPUBindGroup
   private readonly pipeline: GPURenderPipeline
   private updating: boolean
-  public size = 4
+  public size = 32
   public snapToGrid = true
 
   constructor(

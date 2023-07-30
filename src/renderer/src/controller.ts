@@ -2,6 +2,7 @@ import { glMatrix, mat4, quat, vec3 } from 'gl-matrix'
 import Keyboard from './keyboard'
 import Mouse from './mouse'
 import * as Tone from 'tone'
+import TouchController from "./touch-controller";
 
 export default class Controller {
   public transformMatrix: mat4
@@ -15,7 +16,7 @@ export default class Controller {
 
   private noise: Tone.Noise | null
 
-  constructor(private keyboard: Keyboard, private mouse: Mouse) {
+  constructor(private keyboard: Keyboard, private mouse: Mouse, private touchController: TouchController) {
     this.transformMatrix = mat4.create()
     this.position = vec3.fromValues(0, 0.0, -300.0)
     this.velocity = vec3.fromValues(0, 0, 0)
@@ -100,7 +101,7 @@ export default class Controller {
     quat.multiply(orientationDirection, orientationDirection, this.rotation)
     quat.slerp(this.rotation, this.rotation, orientationDirection, 0.01 * deltaTime)
 
-    quat.rotateY(this.rotation, this.rotation, glMatrix.toRadian(-this.mouse.position.x * 0.08))
+    quat.rotateY(this.rotation, this.rotation, glMatrix.toRadian(-(this.mouse.position.x + this.touchController.position.x) * 0.08))
 
     mat4.identity(this.transformMatrix)
     const rotMat = mat4.fromQuat(mat4.create(), this.rotation)

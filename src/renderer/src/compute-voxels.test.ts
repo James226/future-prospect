@@ -1,7 +1,7 @@
 import { describe, expect, it, beforeAll } from 'vitest'
 
 import ComputeVoxels from './compute-voxels.wgsl?raw'
-//import Random from 'seedrandom'
+// import Random from 'seedrandom'
 
 describe('compute-voxels', () => {
   describe('computeMaterials', () => {
@@ -120,7 +120,7 @@ describe('compute-voxels', () => {
       cornerMaterialsRead.unmap()
     })
 
-    it('then materials is not null', () => {
+    it('then materials is correct', () => {
       const expectedResult = new Uint32Array(5 * 5 * 5)
 
       for (let x = 0; x < 5; x++)

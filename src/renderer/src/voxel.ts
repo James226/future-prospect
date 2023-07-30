@@ -117,24 +117,25 @@ const computeVoxels = (
 export default class Voxel {
   public running = false
 
-  private computePipeline: GPUComputePipeline
-  private computeCornersPipeline: GPUComputePipeline
-  private uniformBuffer: GPUBuffer
-  private cornerMaterials: GPUBuffer
-  private cornerMaterialsRead: GPUBuffer
-  private voxelMaterialsBuffer: GPUBuffer
-  private voxelMaterialsBufferRead: GPUBuffer
-  private cornerIndexBuffer: GPUBuffer
-  private gpuReadBuffer: GPUBuffer
-  private permutationsBuffer: GPUBuffer
-  private voxelsBuffer: GPUBuffer
-  private computeBindGroup: GPUBindGroup
-  private computeCornersBindGroup: GPUBindGroup
-  private computePositionsPipeline: GPUComputePipeline
-  private computePositionsBindGroup: GPUBindGroup
-  private computeVoxelsPipeline: GPUComputePipeline
-  private computeVoxelsBindGroup: GPUBindGroup
-  private voxelReadBuffer: GPUBuffer
+  private readonly computePipeline: GPUComputePipeline
+  private readonly computeCornersPipeline: GPUComputePipeline
+  private readonly uniformBuffer: GPUBuffer
+  private readonly cornerMaterials: GPUBuffer
+  private readonly cornerMaterialsRead: GPUBuffer
+  private readonly voxelMaterialsBuffer: GPUBuffer
+  private readonly voxelMaterialsBufferRead: GPUBuffer
+  private readonly cornerIndexBuffer: GPUBuffer
+  private readonly gpuReadBuffer: GPUBuffer
+  private readonly permutationsBuffer: GPUBuffer
+  private readonly voxelsBuffer: GPUBuffer
+  private readonly computeBindGroup: GPUBindGroup
+  private readonly computeCornersBindGroup: GPUBindGroup
+  private readonly computePositionsPipeline: GPUComputePipeline
+  private readonly computePositionsBindGroup: GPUBindGroup
+  private readonly computeVoxelsPipeline: GPUComputePipeline
+  private readonly computeVoxelsBindGroup: GPUBindGroup
+  private readonly voxelReadBuffer: GPUBuffer
+
   private density: Density
   private densityBindGroup: DensityInstance
   private mainDensityBindGroup: DensityInstance

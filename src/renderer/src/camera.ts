@@ -1,20 +1,22 @@
 import { glMatrix, mat4, vec3 } from 'gl-matrix'
 import Controller from './controller'
 import Mouse from './mouse'
+import TouchController from "./touch-controller";
 
 export class Camera {
   public forward: vec3
   public viewMatrix: mat4
   private rotation: number
 
-  constructor(private controller: Controller, private mouse: Mouse) {
+  constructor(private controller: Controller, private mouse: Mouse, private touchController: TouchController) {
     this.viewMatrix = mat4.create()
     this.rotation = 0
     this.forward = vec3.create()
   }
 
   update(projectionMatrix: mat4): void {
-    this.rotation -= glMatrix.toRadian(this.mouse.position.y * 0.08)
+    const y = this.mouse.position.y + this.touchController.position.y
+    this.rotation -= glMatrix.toRadian(y * 0.08)
     this.rotation = Math.max(-Math.PI / 2, Math.min(Math.PI / 2, this.rotation))
 
     const transformMatrix = this.controller.getTransformMatrix()

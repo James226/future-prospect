@@ -1,0 +1,68 @@
+@import "settings";
+
+@mixin svg-icon($url, $color: #000, $size: contain) {
+  background: $color;
+  -webkit-mask-image: url($url);
+  mask-image: url($url);
+  mask-type: luminance;
+  mask-repeat: no-repeat;
+  mask-position: center;
+  mask-size: $size;
+  -webkit-mask-repeat: no-repeat;
+  -webkit-mask-position: center;
+  -webkit-mask-size: $size;
+  -webkit-mask-type: luminance;
+}
+
+body {
+  display: flex;
+  flex-direction: column;
+  font-family: Roboto, -apple-system, BlinkMacSystemFont, 'Helvetica Neue', 'Segoe UI', 'Oxygen',
+    'Ubuntu', 'Cantarell', 'Open Sans', sans-serif;
+  color: #86a5b1;
+  background-color: #2f3241;
+  overscroll-behavior: contain;
+}
+
+* {
+  padding: 0;
+  margin: 0;
+}
+
+.toolbar--right {
+  transform: perspective(9cm) translateX(-2rem) translateY(-1rem) rotateX(-15deg) rotateY(-15deg);
+}
+
+.toolbar {
+  padding: 1rem;
+  transform: perspective(9cm) translateX(2rem) translateY(-1rem) rotateX(-15deg) rotateY(15deg);
+
+  > li {
+    display: inline-block;
+    border: 2px solid $color-shadow;
+    border-image:linear-gradient($color-shadow, transparent) 1;
+    border-radius: 4px;
+    color: $color-shadow;
+    height: 4rem;
+    width: 4rem;
+    background-color: $color-primary;
+
+    &:hover {
+      background-color: $color-active;
+      color: $color-active-shadow;
+      border-image:linear-gradient($color-active-shadow, transparent) 1;
+
+      .spade {
+        background: $color-active-shadow;
+      }
+    }
+  }
+}
+
+
+.spade {
+  width: 100%;
+  height: 100%;
+  @include svg-icon('spade.svg', $core-secondary, 3rem);
+}
+
