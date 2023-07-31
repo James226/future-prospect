@@ -62,8 +62,10 @@ import { mat4 } from 'gl-matrix'
   }
 
   window.addEventListener('resize', configureRenderer, false)
-  window.addEventListener('click', () => {
-    canvas.requestPointerLock()
+  window.addEventListener('pointerdown', (e) => {
+    if (e.pointerType === 'mouse') {
+      canvas.requestPointerLock()
+    }
   })
 
   let game = await Game.init(renderer.device)

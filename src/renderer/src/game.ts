@@ -22,6 +22,11 @@ class Game {
   private shape = DensityShape.Sphere
   private material = DensityMaterial.Rock
 
+  private toolSelector = document.getElementById('add')!
+  private shapeSelector = document.getElementById('shape')!
+  private materialSelector = document.getElementById('material')!
+  private sizeSelector = document.getElementById('size')!
+
   private constructor(
     private voxelWorker: ContouringWorker,
     private keyboard: Keyboard,
@@ -35,7 +40,52 @@ class Game {
     private players: Map<string, Player>,
     private pointer: Pointer,
     private generate: () => void
-  ) {}
+  ) {
+    const maxTool = DensityType[Object.keys(DensityType).sort((k) => -DensityType[k])[0]]
+    const maxShape = DensityShape[Object.keys(DensityShape).sort((k) => -DensityShape[k])[0]]
+    const maxMaterial =
+      DensityMaterial[Object.keys(DensityMaterial).sort((k) => -DensityMaterial[k])[0]]
+
+    this.toolSelector?.addEventListener('touchstart', (e) => {
+      e.stopPropagation()
+    })
+    this.toolSelector?.addEventListener('touchend', (e) => {
+      e.stopPropagation()
+      this.tool = this.tool + 1
+      if (this.tool > maxTool) this.tool = 0
+      this.toolSelector!.innerText = DensityType[this.tool]
+    })
+
+    this.shapeSelector?.addEventListener('touchstart', (e) => {
+      e.stopPropagation()
+    })
+    this.shapeSelector?.addEventListener('touchend', (e) => {
+      e.stopPropagation()
+      this.shape = this.shape + 1
+      if (this.shape > maxShape) this.shape = 0
+      this.shapeSelector!.innerText = DensityShape[this.shape]
+    })
+
+    this.materialSelector?.addEventListener('touchstart', (e) => {
+      e.stopPropagation()
+    })
+    this.materialSelector?.addEventListener('touchend', (e) => {
+      e.stopPropagation()
+      this.material = this.material + 1
+      if (this.material > maxMaterial) this.material = 0
+      this.materialSelector!.innerText = DensityMaterial[this.material]
+    })
+
+    this.sizeSelector?.addEventListener('touchstart', (e) => {
+      e.stopPropagation()
+    })
+    this.sizeSelector?.addEventListener('touchend', (e) => {
+      e.stopPropagation()
+      this.pointer.size = this.pointer.size = this.pointer.size * 2
+      if (this.pointer.size > 1024) this.pointer.size = 4
+      this.sizeSelector!.innerText = this.pointer.size.toString()
+    })
+  }
 
   static async init(device: GPUDevice): Promise<Game> {
     const keyboard = new Keyboard()
@@ -223,23 +273,50 @@ class Game {
     }
 
     const maxShape = DensityShape[Object.keys(DensityShape).sort((k) => -DensityShape[k])[0]]
-    if (this.keyboard.keydown('1')) this.tool = DensityType.Add
-    if (this.keyboard.keydown('2')) this.tool = DensityType.Subtract
-    if (this.keyboard.keypress('3')) this.shape = Math.max(0, this.shape - 1)
-    if (this.keyboard.keypress('4')) this.shape = Math.min(maxShape, this.shape + 1)
-    if (this.keyboard.keydown('5')) this.material = DensityMaterial.Rock
-    if (this.keyboard.keydown('6')) this.material = DensityMaterial.Wood
-    if (this.keyboard.keydown('7')) this.material = DensityMaterial.Fire
-    if (this.keyboard.keypress('t')) this.pointer.snapToGrid = !this.pointer.snapToGrid
-    if (this.keyboard.keypress('=')) this.pointer.size = this.pointer.size * 2
-    if (this.keyboard.keypress('-')) this.pointer.size = Math.max(4, this.pointer.size / 2)
-
-    const tool = document.getElementById('tool')
-    if (tool) {
-      tool.innerText = `${DensityType[this.tool]} - ${DensityShape[this.shape]} - ${
-        DensityMaterial[this.material]
-      } - ${this.pointer.size} - ${this.pointer.snapToGrid}`
+    if (this.keyboard.keydown('1')) {
+      this.tool = DensityType.Add
+      this.toolSelector!.innerText = DensityType[this.tool]
     }
+    if (this.keyboard.keydown('2')) {
+      this.tool = DensityType.Subtract
+      this.toolSelector!.innerText = DensityType[this.tool]
+    }
+    if (this.keyboard.keypress('3')) {
+      this.shape = Math.max(0, this.shape - 1)
+      this.shapeSelector!.innerText = DensityShape[this.shape]
+    }
+    if (this.keyboard.keypress('4')) {
+      this.shape = Math.min(maxShape, this.shape + 1)
+      this.shapeSelector!.innerText = DensityShape[this.shape]
+    }
+    if (this.keyboard.keydown('5')) {
+      this.material = DensityMaterial.Rock
+      this.materialSelector!.innerText = DensityMaterial[this.material]
+    }
+    if (this.keyboard.keydown('6')) {
+      this.material = DensityMaterial.Wood
+      this.materialSelector!.innerText = DensityMaterial[this.material]
+    }
+    if (this.keyboard.keydown('7')) {
+      this.material = DensityMaterial.Fire
+      this.materialSelector!.innerText = DensityMaterial[this.material]
+    }
+    if (this.keyboard.keypress('t')) this.pointer.snapToGrid = !this.pointer.snapToGrid
+    if (this.keyboard.keypress('=')) {
+      this.pointer.size = this.pointer.size * 2
+      this.sizeSelector!.innerText = this.pointer.size.toString()
+    }
+    if (this.keyboard.keypress('-')) {
+      this.pointer.size = Math.max(4, this.pointer.size / 2)
+      this.sizeSelector!.innerText = this.pointer.size.toString()
+    }
+
+    // const tool = document.getElementById('tool')
+    // if (tool) {
+    //   tool.innerText = `${DensityType[this.tool]} - ${DensityShape[this.shape]} - ${
+    //     DensityMaterial[this.material]
+    //   } - ${this.pointer.size} - ${this.pointer.snapToGrid}`
+    // }
 
     // Disable regeneration of world
     if (timestamp - this.lastUpdate > 10000) {
