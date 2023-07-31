@@ -260,7 +260,7 @@ class Game {
       this.generate()
     }
 
-    if (this.keyboard.keypress(' ') || this.touchController.primaryTrigger) {
+    if (this.keyboard.keypress(' ') || this.touchController.trigger()) {
       const gravityDirection = vec3.create()
       vec3.scale(gravityDirection, this.controller.up, 100)
       vec3.add(gravityDirection, this.controller.position, gravityDirection)

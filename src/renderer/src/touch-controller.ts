@@ -1,45 +1,86 @@
 import { Point } from './mouse'
 
-export default class TouchController {
-  public position: Point
-  public primaryTrigger = false
-  private leftMoved = false
-  private previousTouch: Touch | null = null
+class Joystick {
+  public position: Point = { x: 0, y: 0 }
+  public moved = false
+  public startTouch: Touch | null = null
+  public previousTrigger = false
+  public trigger = false
+}
 
-  constructor() {
-    this.position = { x: 0, y: 0 }
-  }
+export default class TouchController {
+  public left: Joystick = new Joystick()
+  public right: Joystick = new Joystick()
+  public joystickMappings = new Map<number, Joystick>()
 
   init(): void {
     const touchMove = (e: TouchEvent): void => {
-      const touch = e.touches[0]
-      console.log('Move')
+      for (let i = 0; i < e.touches.length; i++) {
+        const touch = e.touches[i]
+        const joystick = this.joystickMappings.get(touch.identifier)
+        if (!joystick) continue
 
-      this.leftMoved = true
+        if (joystick.startTouch) {
+          joystick.position.x = touch.screenX - joystick.startTouch.screenX
+          joystick.position.x -= Math.sign(joystick.position.x) * 10
+          if (Math.abs(joystick.position.x) < 10) joystick.position.x = 0
+          joystick.position.y = touch.screenY - joystick.startTouch.screenY
+          joystick.position.y -= Math.sign(joystick.position.y) * 10
+          if (Math.abs(joystick.position.y) < 10) joystick.position.y = 0
 
-      if (this.previousTouch) {
-        this.position.x += this.previousTouch.screenX - touch.screenX
-        this.position.y += this.previousTouch.screenY - touch.screenY
+          if (joystick.position.x !== 0 || joystick.position.y !== 0) {
+            joystick.moved = true
+          }
+        }
       }
-      this.previousTouch = touch
     }
 
     document.addEventListener('touchmove', touchMove)
     document.addEventListener('touchstart', (e) => {
-      console.log(e)
-    })
-    document.addEventListener('touchend', () => {
-      this.previousTouch = null
-      if (!this.leftMoved) {
-        this.primaryTrigger = true
+
+      const halfWidth = window.screen.width / 2
+      for (let i = 0; i < e.changedTouches.length; i++) {
+        const touch = e.changedTouches[i]
+
+        if (this.joystickMappings.has(touch.identifier)) continue
+
+        let joystick: Joystick | null = null
+        if (touch.screenX < halfWidth) {
+          joystick = this.left
+        } else {
+          joystick = this.right
+        }
+        this.joystickMappings.set(touch.identifier, joystick)
+        joystick.startTouch = touch
       }
-      this.leftMoved = false
+    })
+    document.addEventListener('touchend', (e) => {
+      for (let i = 0; i < e.changedTouches.length; i++) {
+        const touch = e.changedTouches[i]
+        const joystick = this.joystickMappings.get(touch.identifier)
+        this.joystickMappings.delete(touch.identifier)
+        if (!joystick) continue
+
+        if (!joystick.moved) {
+          joystick.trigger = true
+        }
+        joystick.startTouch = null
+        joystick.moved = false
+        joystick.position.x = 0
+        joystick.position.y = 0
+      }
     })
   }
 
   update(): void {
-    this.position.x = 0
-    this.position.y = 0
-    this.primaryTrigger = false
+    this.left.previousTrigger = this.left.trigger
+    this.left.trigger = false
+
+    this.right.previousTrigger = this.right.trigger
+    this.right.trigger = false
+  }
+
+  trigger(): boolean {
+    return this.right.previousTrigger && !this.right.trigger
   }
 }
