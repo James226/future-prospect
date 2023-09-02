@@ -29,5 +29,5 @@ jobs:
         uses: svenstaro/upload-release-action@v2
         with:
           repo_token: ${{ secrets.GITHUB_TOKEN }}
-          file: dist/future-prospect-*-*.zip
+          file: dist/Future Prospect-*-*.zip
           file_glob: true
