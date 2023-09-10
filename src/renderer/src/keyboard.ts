@@ -19,8 +19,20 @@ export default class Keyboard {
       this.bufferKeys.delete(key.toLowerCase())
     }
 
+
+    const mousedown = (e: MouseEvent): void => {
+      e.preventDefault()
+      this.bufferKeys.set(`mouse-${e.button}`, true)
+    }
+
+    const mouseup = ({ button }: MouseEvent): void => {
+      this.bufferKeys.delete(`mouse-${button}`)
+    }
+
     document.addEventListener('keydown', keydown)
     document.addEventListener('keyup', keyup)
+    document.addEventListener('mousedown', mousedown)
+    document.addEventListener('mouseup', mouseup)
   }
 
   update(): void {
