@@ -1,10 +1,11 @@
+@use "sass:color";
 $color-primary: #9edb2a;
 $core-secondary: #656565;
-$color-highlight: darken($color-primary, 10%);
-$color-shadow: darken($color-primary, 30%);
+$color-highlight: color.adjust($color-primary, $lightness: -10%);
+$color-shadow: color.adjust($color-primary, $lightness: -30%);
 
 $color-active: #fe9c42;
-$color-active-highlight: darken($color-active, 10%);
-$color-active-shadow: darken($color-active, 30%);
+$color-active-highlight: color.adjust($color-active, $lightness: -10%);
+$color-active-shadow: color.adjust($color-active, $lightness: -30%);
 
 // #672ADB

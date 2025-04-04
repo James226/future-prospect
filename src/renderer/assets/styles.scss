@@ -1,4 +1,4 @@
-@import "settings";
+@use "settings";
 
 @mixin svg-icon($url, $color: #000, $size: contain) {
   background: $color;
@@ -43,21 +43,21 @@ body {
   }
 
   > li {
-    border: 2px solid $color-shadow;
-    border-image:linear-gradient($color-shadow, transparent) 1;
+    border: 2px solid settings.$color-shadow;
+    border-image:linear-gradient(settings.$color-shadow, transparent) 1;
     border-radius: 4px;
-    color: $color-shadow;
+    color: settings.$color-shadow;
     height: 4rem;
     width: 4rem;
-    background-color: $color-primary;
+    background-color: settings.$color-primary;
 
     &:hover {
-      background-color: $color-active;
-      color: $color-active-shadow;
-      border-image:linear-gradient($color-active-shadow, transparent) 1;
+      background-color: settings.$color-active;
+      color: settings.$color-active-shadow;
+      border-image:linear-gradient(settings.$color-active-shadow, transparent) 1;
 
       .spade {
-        background: $color-active-shadow;
+        background: settings.$color-active-shadow;
       }
     }
 
@@ -73,6 +73,6 @@ body {
 .spade {
   width: 100%;
   height: 100%;
-  @include svg-icon('spade.svg', $core-secondary, 3rem);
+  @include svg-icon('spade.svg', settings.$core-secondary, 3rem);
 }
 

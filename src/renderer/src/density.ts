@@ -114,7 +114,7 @@ export default class Density {
     )
   }
 
-  updateRaw(device: GPUDevice, densityArray: Float32Array): void {
+  updateRaw(device: GPUDevice, densityArray: ArrayBuffer): void {
     this.augmentations = densityArray
 
     device.queue.writeBuffer(

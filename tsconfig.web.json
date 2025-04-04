@@ -4,11 +4,10 @@
   "compilerOptions": {
     "composite": true,
     "typeRoots": [
-      "./node_modules/@webgpu/types",
-      "./node_modules/@types"
+      "./node_modules",
+      "./node_modules/@types",
     ],
     "types": [
-      "@types/jasmine",
       "vite/client",
       "@webgpu/types"
     ]
