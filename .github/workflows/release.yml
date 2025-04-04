@@ -9,11 +9,10 @@ jobs:
   build:
 
     runs-on: ${{ matrix.os }}
-    container: electronuserland/builder:wine
 
     strategy:
       matrix:
-        os: [ubuntu-latest]
+        os: [ubuntu-latest, macos-latest]
     steps:
       - uses: actions/checkout@v2
       - name: Use Node.js 22.x
